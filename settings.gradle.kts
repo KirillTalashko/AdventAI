@@ -21,4 +21,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "AdventAI"
 include(":app")
- 
+include(":core:common")
+include(":core:network")
+include(":feature:chat")
