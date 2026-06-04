@@ -37,7 +37,7 @@ object NetworkModule {
                 val requestBuilder = chain.request().newBuilder()
                     .addHeader("Content-Type", "application/json")
 
-                if (apiKey.isNotBlank() && apiKey != "your_key_here") {
+                if (apiKey.isNotBlank()) {
                     requestBuilder.addHeader("Authorization", "Bearer $apiKey")
                 }
 
