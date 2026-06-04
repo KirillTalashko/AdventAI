@@ -5,6 +5,7 @@ import com.example.feature.chat.data.mapper.toChatRequestDto
 import com.example.feature.chat.data.mapper.toResponseContent
 import com.example.feature.chat.data.mapper.toUserChatMessage
 import com.example.feature.chat.domain.exception.ChatException
+import com.example.feature.chat.domain.model.ChatRequestOptions
 import com.example.feature.chat.domain.repository.ChatRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -19,72 +20,53 @@ import javax.inject.Inject
 class ChatRepositoryImpl @Inject constructor(
     private val deepSeekApi: DeepSeekApi
 ) : ChatRepository {
-    override suspend fun sendMessage(message: String): String = withContext(Dispatchers.IO) {
+    override suspend fun sendMessage(
+        message: String,
+        options: ChatRequestOptions
+    ): String = withContext(Dispatchers.IO) {
         try {
-            val request = message.toUserChatMessage().toChatRequestDto()
+            val request = message.toUserChatMessage().toChatRequestDto(options)
             deepSeekApi.sendMessage(request).toResponseContent()
         } catch (exception: UnknownHostException) {
-            throw ChatException(
-                message = "Cannot resolve api.deepseek.com. Check internet, DNS, VPN or proxy settings.",
-                cause = exception
-            )
+            throw ChatException.UnknownHost(exception)
         } catch (exception: SocketTimeoutException) {
-            throw ChatException(
-                message = "Request timed out. Check your connection and try again.",
-                cause = exception
-            )
+            throw ChatException.Timeout(exception)
         } catch (exception: ConnectException) {
-            throw ChatException(
-                message = "Cannot connect to DeepSeek API. Check internet, VPN or proxy settings.",
-                cause = exception
-            )
+            throw ChatException.Connection(exception)
         } catch (exception: SSLException) {
-            throw ChatException(
-                message = "Secure connection to DeepSeek failed: ${exception.safeMessage()}",
+            throw ChatException.SecureConnection(
+                details = exception.safeMessage(),
                 cause = exception
             )
         } catch (exception: IOException) {
-            throw ChatException(
-                message = "Network error: ${exception.safeMessage()}",
+            throw ChatException.Network(
+                details = exception.safeMessage(),
                 cause = exception
             )
         } catch (exception: HttpException) {
-            throw ChatException(message = exception.toUiMessage(), cause = exception)
+            throw ChatException.Http(
+                code = exception.code(),
+                statusMessage = exception.message().takeIf(String::isNotBlank),
+                details = exception.errorBody(),
+                cause = exception
+            )
         } catch (exception: ChatException) {
             throw exception
         } catch (exception: Exception) {
-            throw ChatException(
-                message = exception.message ?: "Unexpected error. Try again later.",
+            throw ChatException.Unexpected(
+                details = exception.message,
                 cause = exception
             )
         }
     }
 }
 
-private fun HttpException.toUiMessage(): String {
-    val errorBody = response()
+private fun HttpException.errorBody(): String? =
+    response()
         ?.errorBody()
         ?.string()
         ?.takeIf(String::isNotBlank)
         ?.take(400)
-
-    val baseMessage = when (code()) {
-        400 -> "Invalid request format."
-        401 -> "Authentication failed. Check DEEPSEEK_API_KEY in local.properties and rebuild the app."
-        402 -> "Insufficient DeepSeek account balance."
-        422 -> "Invalid request parameters."
-        429 -> "Rate limit reached. Try again later."
-        500 -> "DeepSeek server error. Try again later."
-        503 -> "DeepSeek server is overloaded. Try again later."
-        else -> "Server error ${code()}: ${message().ifBlank { "Try again later." }}"
-    }
-
-    return if (errorBody == null) {
-        baseMessage
-    } else {
-        "$baseMessage Details: $errorBody"
-    }
-}
 
 private fun Throwable.safeMessage(): String =
     localizedMessage?.takeIf(String::isNotBlank) ?: javaClass.simpleName

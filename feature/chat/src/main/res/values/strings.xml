@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_screen_title">AdventAI</string>
+    <string name="message_label">Сообщение</string>
+    <string name="send_button">Отправить</string>
+    <string name="smart_format_title">Умный формат ответа</string>
+    <string name="mode_unrestricted">Обычный ответ</string>
+    <string name="mode_restricted">Структурированный ответ</string>
+    <string name="mode_value">Режим ответа:\n%1$s</string>
+    <string name="last_response_title">Последний ответ</string>
+    <string name="source_prompt_title">Исходный запрос</string>
+    <string name="unrestricted_response_title">Обычный ответ</string>
+    <string name="restricted_response_title">Структурированный ответ</string>
+    <string name="response_not_received">Ответ еще не получен.</string>
+
+    <string name="error_enter_message">Введите сообщение перед отправкой.</string>
+    <string name="error_empty_response">DeepSeek вернул пустой ответ.</string>
+    <string name="error_token_limit">Лимит токенов закончился до формирования финального ответа.</string>
+    <string name="error_unknown_host">Не удалось определить адрес api.deepseek.com. Проверьте интернет, DNS, VPN или proxy.</string>
+    <string name="error_timeout">Время ожидания запроса истекло. Проверьте соединение и повторите попытку.</string>
+    <string name="error_connection">Не удалось подключиться к DeepSeek API. Проверьте интернет, VPN или proxy.</string>
+    <string name="error_secure_connection">Ошибка защищенного соединения с DeepSeek: %1$s</string>
+    <string name="error_network">Ошибка сети: %1$s</string>
+    <string name="error_invalid_request">Некорректный формат запроса.</string>
+    <string name="error_authentication">Ошибка авторизации. Проверьте DEEPSEEK_API_KEY в local.properties и пересоберите приложение.</string>
+    <string name="error_insufficient_balance">Недостаточно средств на аккаунте DeepSeek.</string>
+    <string name="error_invalid_parameters">Некорректные параметры запроса.</string>
+    <string name="error_rate_limit">Достигнут лимит запросов. Повторите попытку позже.</string>
+    <string name="error_server">Ошибка сервера DeepSeek. Повторите попытку позже.</string>
+    <string name="error_server_overloaded">Сервер DeepSeek перегружен. Повторите попытку позже.</string>
+    <string name="error_server_code">Ошибка сервера %1$d: %2$s</string>
+    <string name="error_with_details">%1$s Подробности: %2$s</string>
+    <string name="error_try_again">Повторите попытку позже.</string>
+    <string name="error_unexpected">Непредвиденная ошибка. Повторите попытку позже.</string>
+
+    <string name="stop_sequence_end_response">Конец ответа</string>
+    <string name="structured_system_prompt">You are a senior Android developer and team lead. Explain ideas constructively, clearly, and practically. Help the user understand trade-offs, keep answers structured, and avoid unnecessary verbosity.</string>
+    <string name="restricted_prompt_template">%1$s\n\nИнструкции управления ответом:\nОтвет должен быть полезной выжимкой для Android-разработчика и строго в формате:\n\nКраткое описание:\n...\n\nПреимущества:\n* ...\n* ...\n\nНедостатки:\n* ...\n* ...\n\nНе более 180 слов. Краткое описание — 2–3 предложения. Используй ровно два пункта в каждом списке. Пиши конструктивно, по делу, без лишних разделов.\nЗаканчивай ответ строкой:\nКонец ответа</string>
+
+    <string name="preview_prompt">Расскажи о языке Kotlin</string>
+    <string name="preview_last_response">Kotlin — современный язык программирования.</string>
+    <string name="preview_unrestricted_response">Kotlin — современный язык для Android и серверной разработки.</string>
+    <string name="preview_restricted_response">Краткое описание:\nKotlin — современный язык программирования.</string>
+</resources>
