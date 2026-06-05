@@ -1,8 +1,8 @@
 package com.example.feature.chat.presentation.mapper
 
+import com.example.core.model.ai.ChatRequestOptions
+import com.example.core.model.ai.ThinkingMode
 import com.example.feature.chat.R
-import com.example.feature.chat.domain.model.ChatRequestOptions
-import com.example.feature.chat.domain.model.ThinkingMode
 import com.example.feature.chat.presentation.model.PreparedChatRequest
 import com.example.feature.chat.presentation.model.ResponseMode
 import com.example.feature.chat.presentation.text.ChatTextProvider

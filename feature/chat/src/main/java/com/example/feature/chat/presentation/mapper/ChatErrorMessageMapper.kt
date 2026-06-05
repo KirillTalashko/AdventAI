@@ -1,7 +1,7 @@
 package com.example.feature.chat.presentation.mapper
 
+import com.example.core.common.AppError
 import com.example.feature.chat.R
-import com.example.feature.chat.domain.exception.ChatException
 import com.example.feature.chat.presentation.text.ChatTextProvider
 import javax.inject.Inject
 
@@ -11,44 +11,41 @@ class ChatErrorMessageMapper @Inject constructor(
     fun emptyMessage(): String =
         textProvider.get(R.string.error_enter_message)
 
-    fun map(throwable: Throwable): String = when (throwable) {
-        is ChatException.EmptyResponse -> textProvider.get(R.string.error_empty_response)
-        is ChatException.TokenLimitReached -> textProvider.get(R.string.error_token_limit)
-        is ChatException.UnknownHost -> textProvider.get(R.string.error_unknown_host)
-        is ChatException.Timeout -> textProvider.get(R.string.error_timeout)
-        is ChatException.Connection -> textProvider.get(R.string.error_connection)
-        is ChatException.SecureConnection -> textProvider.get(
+    fun map(error: AppError): String = when (error) {
+        AppError.EmptyPrompt -> emptyMessage()
+        AppError.EmptyResponse -> textProvider.get(R.string.error_empty_response)
+        AppError.TokenLimitReached -> textProvider.get(R.string.error_token_limit)
+        AppError.UnknownHost -> textProvider.get(R.string.error_unknown_host)
+        AppError.Timeout -> textProvider.get(R.string.error_timeout)
+        AppError.Connection -> textProvider.get(R.string.error_connection)
+        AppError.Network -> textProvider.get(R.string.error_connection)
+        AppError.Unauthorized -> textProvider.get(R.string.error_authentication)
+        AppError.RateLimit -> textProvider.get(R.string.error_rate_limit)
+        AppError.InvalidRequest -> textProvider.get(R.string.error_invalid_request)
+        AppError.InvalidParameters -> textProvider.get(R.string.error_invalid_parameters)
+        AppError.InsufficientBalance -> textProvider.get(R.string.error_insufficient_balance)
+        AppError.Server -> textProvider.get(R.string.error_server)
+        AppError.ServerOverloaded -> textProvider.get(R.string.error_server_overloaded)
+        is AppError.SecureConnection -> textProvider.get(
             R.string.error_secure_connection,
-            throwable.details
+            error.details
         )
 
-        is ChatException.Network -> textProvider.get(
+        is AppError.NetworkDetails -> textProvider.get(
             R.string.error_network,
-            throwable.details
+            error.details
         )
 
-        is ChatException.Http -> throwable.toUiMessage()
-        is ChatException.Unexpected -> throwable.details
-            ?: textProvider.get(R.string.error_unexpected)
-
-        else -> throwable.message ?: textProvider.get(R.string.error_unexpected)
+        is AppError.ServerCode -> error.toUiMessage()
+        is AppError.Unknown -> error.message ?: textProvider.get(R.string.error_unexpected)
     }
 
-    private fun ChatException.Http.toUiMessage(): String {
-        val baseMessage = when (code) {
-            400 -> textProvider.get(R.string.error_invalid_request)
-            401 -> textProvider.get(R.string.error_authentication)
-            402 -> textProvider.get(R.string.error_insufficient_balance)
-            422 -> textProvider.get(R.string.error_invalid_parameters)
-            429 -> textProvider.get(R.string.error_rate_limit)
-            500 -> textProvider.get(R.string.error_server)
-            503 -> textProvider.get(R.string.error_server_overloaded)
-            else -> textProvider.get(
-                R.string.error_server_code,
-                code,
-                statusMessage ?: textProvider.get(R.string.error_try_again)
-            )
-        }
+    private fun AppError.ServerCode.toUiMessage(): String {
+        val baseMessage = textProvider.get(
+            R.string.error_server_code,
+            code,
+            message ?: textProvider.get(R.string.error_try_again)
+        )
 
         return details?.let { errorDetails ->
             textProvider.get(

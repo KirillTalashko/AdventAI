@@ -22,5 +22,11 @@ dependencyResolutionManagement {
 rootProject.name = "AdventAI"
 include(":app")
 include(":core:common")
+include(":core:model")
+include(":core:domain")
 include(":core:network")
+include(":core:data")
+include(":core:designsystem")
+include(":core:testing")
+include(":feature:home")
 include(":feature:chat")

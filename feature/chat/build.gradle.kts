@@ -37,7 +37,9 @@ kotlin {
 
 dependencies {
     implementation(project(":core:common"))
-    implementation(project(":core:network"))
+    implementation(project(":core:domain"))
+    implementation(project(":core:model"))
+    implementation(project(":core:designsystem"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -52,7 +54,6 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
-    implementation(libs.retrofit)
 }
 
 kapt {

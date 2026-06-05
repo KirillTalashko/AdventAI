@@ -5,7 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.example.adventai.navigation.AppNavHost
-import com.example.adventai.ui.theme.AdventAITheme
+import com.example.core.designsystem.theme.AdventAITheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint

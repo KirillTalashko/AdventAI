@@ -1,6 +1,6 @@
 package com.example.feature.chat.presentation.model
 
-import com.example.feature.chat.domain.model.ChatRequestOptions
+import com.example.core.model.ai.ChatRequestOptions
 
 data class PreparedChatRequest(
     val sourcePrompt: String,

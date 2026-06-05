@@ -1,17 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="chat_screen_title">AdventAI</string>
+    <string name="chat_screen_title">Спросите Advent AI</string>
+    <string name="format_screen_title">Настройте ответ Advent AI</string>
     <string name="message_label">Сообщение</string>
     <string name="send_button">Отправить</string>
-    <string name="smart_format_title">Умный формат ответа</string>
-    <string name="mode_unrestricted">Обычный ответ</string>
-    <string name="mode_restricted">Структурированный ответ</string>
+    <string name="smart_format_title">Параметры ответа</string>
+    <string name="parameters_switch_title">Параметры ответа</string>
+    <string name="mode_unrestricted">Без параметров</string>
+    <string name="mode_restricted">Ответ с параметрами</string>
     <string name="mode_value">Режим ответа:\n%1$s</string>
     <string name="last_response_title">Последний ответ</string>
     <string name="source_prompt_title">Исходный запрос</string>
-    <string name="unrestricted_response_title">Обычный ответ</string>
-    <string name="restricted_response_title">Структурированный ответ</string>
+    <string name="unrestricted_response_title">Без параметров</string>
+    <string name="restricted_response_title">Ответ с параметрами</string>
+    <string name="response_without_parameters_title">Без параметров</string>
+    <string name="response_with_parameters_title">Ответ с параметрами</string>
     <string name="response_not_received">Ответ еще не получен.</string>
+    <string name="open_reasoning_button">Рассуждение</string>
+    <string name="back_button">Назад</string>
+
+    <string name="reasoning_screen_title">День 3. Разные способы рассуждения</string>
+    <string name="reasoning_task_label">Задача</string>
+    <string name="reasoning_task_placeholder">Введите логическую, алгоритмическую или аналитическую задачу</string>
+    <string name="reasoning_method_title">Выбор режима</string>
+    <string name="reasoning_mode_direct">Прямой ответ</string>
+    <string name="reasoning_mode_step_by_step">Пошаговое решение</string>
+    <string name="reasoning_mode_prompt_generated">Сгенерированный промпт</string>
+    <string name="reasoning_mode_expert_group">Группа экспертов</string>
+    <string name="reasoning_options_title">Настройки рассуждения</string>
+    <string name="reasoning_deep_switch">Глубокое рассуждение</string>
+    <string name="reasoning_expert_switch">Экспертный</string>
+    <string name="reasoning_run_button">Получить ответы</string>
+    <string name="reasoning_run_selected_button">Получить</string>
+    <string name="reasoning_run_comparison_button">Сравнить</string>
+    <string name="reasoning_run_answers_button">Получить ответы</string>
+    <string name="reasoning_compare_button">Сравнить</string>
+    <string name="reasoning_source_task_title">Исходная задача</string>
+    <string name="reasoning_direct_answer_title">1. Прямой ответ</string>
+    <string name="reasoning_step_by_step_answer_title">2. Решай пошагово</string>
+    <string name="reasoning_generated_prompt_title">3. Сгенерированный промпт</string>
+    <string name="reasoning_prompt_based_answer_title">3. Ответ по сгенерированному промпту</string>
+    <string name="reasoning_expert_answer_title">4. Группа экспертов</string>
+    <string name="reasoning_comparison_title">Сравнение</string>
+    <string name="reasoning_summary_title">Итог</string>
+    <string name="reasoning_prompt_label">Промпт</string>
+    <string name="reasoning_show_prompt">Показать промпт</string>
+    <string name="reasoning_hide_prompt">Скрыть промпт</string>
+    <string name="reasoning_content_label">Ход рассуждения</string>
+    <string name="reasoning_answer_label">Ответ</string>
+    <string name="reasoning_show_reasoning">Показать ход рассуждения</string>
+    <string name="reasoning_hide_reasoning">Скрыть ход рассуждения</string>
+    <string name="reasoning_waiting_for_answer">Ответ появится после запуска.</string>
+    <string name="reasoning_comparison_loading">Сравнение формируется после получения ответов.</string>
+    <string name="reasoning_summary_not_detected">Итог находится в блоке сравнения.</string>
+    <string name="reasoning_answer_not_available">Ответ недоступен.</string>
+    <string name="reasoning_failed_answer_template">Запрос завершился ошибкой: %1$s</string>
+    <string name="reasoning_default_task"></string>
+    <string name="error_enter_reasoning_task">Введите задачу для анализа.</string>
+    <string name="error_select_reasoning_mode">Выберите хотя бы один режим.</string>
+    <string name="error_no_reasoning_answers">Сначала получите хотя бы один ответ.</string>
 
     <string name="error_enter_message">Введите сообщение перед отправкой.</string>
     <string name="error_empty_response">DeepSeek вернул пустой ответ.</string>
@@ -37,8 +84,74 @@
     <string name="structured_system_prompt">You are a senior Android developer and team lead. Explain ideas constructively, clearly, and practically. Help the user understand trade-offs, keep answers structured, and avoid unnecessary verbosity.</string>
     <string name="restricted_prompt_template">%1$s\n\nИнструкции управления ответом:\nОтвет должен быть полезной выжимкой для Android-разработчика и строго в формате:\n\nКраткое описание:\n...\n\nПреимущества:\n* ...\n* ...\n\nНедостатки:\n* ...\n* ...\n\nНе более 180 слов. Краткое описание — 2–3 предложения. Используй ровно два пункта в каждом списке. Пиши конструктивно, по делу, без лишних разделов.\nЗаканчивай ответ строкой:\nКонец ответа</string>
 
+    <string name="reasoning_direct_prompt_template">Реши задачу: %1$s</string>
+    <string name="reasoning_step_by_step_prompt_template">Реши задачу пошагово. Сначала проанализируй ограничения, затем дай последовательность действий, затем финальный ответ. Задача: %1$s</string>
+    <string name="reasoning_prompt_generation_template">Составь эффективный промпт для получения точного решения этой логической задачи через LLM. Промпт должен требовать анализ ограничений, пошаговое решение и проверку ответа. Задача: %1$s</string>
+    <string name="reasoning_expert_prompt_template"><![CDATA[Представь, что задачу решает группа экспертов:
+
+1. Аналитик — анализирует ограничения.
+2. Инженер — строит алгоритм действий.
+3. Критик — проверяет решение на ошибки.
+
+Каждый эксперт должен дать свой вклад. Затем дай финальное согласованное решение.
+
+Задача: %1$s]]></string>
+    <string name="reasoning_selected_answer_template"><![CDATA[%1$s:
+%2$s]]></string>
+    <string name="reasoning_comparison_template"><![CDATA[Ниже приведены ответы разных режимов на одну задачу.
+
+Задача:
+%1$s
+
+Ответы:
+%2$s
+
+Сравни только предоставленные ответы.
+
+Не пересказывай ответы полностью.
+Не повторяй текст решений.
+Оцени их по критериям:
+
+* точность;
+* полнота;
+* понятность;
+* проверка ограничений;
+* практическая полезность.
+
+Выбери лучший ответ среди предоставленных.
+Если несколько ответов дополняют друг друга, всё равно выбери один лучший основной вариант и объясни почему.
+Если предоставлен только один ответ, оцени только его и отметь, что сравнение ограничено одним вариантом.
+
+Формат ответа:
+
+Лучший вариант: <название режима>
+
+Почему:
+<краткое объяснение>
+
+Сильные стороны:
+
+* ...
+
+Слабые стороны:
+
+* ...
+
+Итог:
+<короткий вывод>]]></string>
+
     <string name="preview_prompt">Расскажи о языке Kotlin</string>
     <string name="preview_last_response">Kotlin — современный язык программирования.</string>
     <string name="preview_unrestricted_response">Kotlin — современный язык для Android и серверной разработки.</string>
     <string name="preview_restricted_response">Краткое описание:\nKotlin — современный язык программирования.</string>
+    <string name="preview_reasoning_task">Найди самый короткий путь в графе между двумя вершинами.</string>
+    <string name="preview_reasoning_direct_prompt">Реши задачу про поиск кратчайшего пути в графе.</string>
+    <string name="preview_reasoning_step_prompt">Реши задачу пошагово.</string>
+    <string name="preview_reasoning_direct_answer">Для графа с неотрицательными весами подойдет алгоритм Дейкстры.</string>
+    <string name="preview_reasoning_step_answer">1. Инициализировать расстояния.\n2. Выбирать вершину с минимальной оценкой.\n3. Обновлять соседей.\n4. Повторять до целевой вершины.</string>
+    <string name="preview_reasoning_generated_prompt">Составь пошаговое решение задачи с проверкой ограничений.</string>
+    <string name="preview_reasoning_prompt_answer">Сгенерированный промпт просит указать ограничения графа и проверить корректность выбранного алгоритма.</string>
+    <string name="preview_reasoning_expert_answer">Аналитик: выделяет ограничения.\nИнженер: строит последовательность действий.\nКритик: проверяет решение на ошибки.</string>
+    <string name="preview_reasoning_comparison">| Способ | Точность | Полнота | Понятность | Комментарий |\n| ------ | -------- | ------- | ---------- | ----------- |\n| Пошаговый | Высокая | Высокая | Высокая | Показывает проверку ограничений |</string>
+    <string name="preview_reasoning_summary">Итог: пошаговый и экспертный подходы легче проверять на ошибки.</string>
 </resources>
