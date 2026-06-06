@@ -6,6 +6,7 @@ import androidx.navigation.compose.composable
 import com.example.feature.chat.presentation.format.screen.FormatRoute
 import com.example.feature.chat.presentation.reasoning.screen.ReasoningRoute
 import com.example.feature.chat.presentation.screen.ChatRoute
+import com.example.feature.chat.presentation.temperature.screen.TemperatureRoute
 
 object ChatDestination {
     const val ROUTE = "chat"
@@ -17,6 +18,10 @@ object Day2FormatDestination {
 
 object ReasoningDestination {
     const val ROUTE = "reasoning"
+}
+
+object TemperatureDestination {
+    const val ROUTE = "temperature"
 }
 
 fun NavGraphBuilder.chatScreen() {
@@ -34,5 +39,11 @@ fun NavGraphBuilder.day2FormatScreen() {
 fun NavGraphBuilder.reasoningScreen() {
     composable(route = ReasoningDestination.ROUTE) {
         ReasoningRoute(viewModel = hiltViewModel())
+    }
+}
+
+fun NavGraphBuilder.temperatureScreen() {
+    composable(route = TemperatureDestination.ROUTE) {
+        TemperatureRoute(viewModel = hiltViewModel())
     }
 }
