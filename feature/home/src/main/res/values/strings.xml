@@ -7,4 +7,6 @@
     <string name="home_format_description">temperature, stop и системная инструкция</string>
     <string name="home_reasoning_title">День 3. Выбор режима</string>
     <string name="home_reasoning_description">Прямой ответ, пошаговое решение, промпт и группа экспертов</string>
+    <string name="home_temperature_title">День 4. Температура</string>
+    <string name="home_temperature_description">Сравнение ответов при temperature 0, 0.7 и 1.2</string>
 </resources>

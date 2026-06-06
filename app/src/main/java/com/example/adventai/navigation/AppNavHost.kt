@@ -13,9 +13,11 @@ import com.example.core.designsystem.component.AppScaffold
 import com.example.feature.chat.presentation.navigation.ChatDestination
 import com.example.feature.chat.presentation.navigation.Day2FormatDestination
 import com.example.feature.chat.presentation.navigation.ReasoningDestination
+import com.example.feature.chat.presentation.navigation.TemperatureDestination
 import com.example.feature.chat.presentation.navigation.chatScreen
 import com.example.feature.chat.presentation.navigation.day2FormatScreen
 import com.example.feature.chat.presentation.navigation.reasoningScreen
+import com.example.feature.chat.presentation.navigation.temperatureScreen
 import com.example.feature.home.presentation.navigation.HomeDestination
 import com.example.feature.home.presentation.navigation.homeScreen
 
@@ -49,11 +51,15 @@ fun AppNavHost() {
                 },
                 onOpenDay3Reasoning = {
                     navController.navigate(ReasoningDestination.ROUTE)
+                },
+                onOpenDay4Temperature = {
+                    navController.navigate(TemperatureDestination.ROUTE)
                 }
             )
             chatScreen()
             day2FormatScreen()
             reasoningScreen()
+            temperatureScreen()
         }
     }
 }

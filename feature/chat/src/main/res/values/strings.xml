@@ -60,6 +60,24 @@
     <string name="error_select_reasoning_mode">Выберите хотя бы один режим.</string>
     <string name="error_no_reasoning_answers">Сначала получите хотя бы один ответ.</string>
 
+    <string name="temperature_screen_title">День 4. Температура</string>
+    <string name="temperature_prompt_label">Запрос</string>
+    <string name="temperature_prompt_placeholder">Введите один запрос для проверки разных температур</string>
+    <string name="temperature_run_button">Запустить эксперимент</string>
+    <string name="temperature_precise_title">temperature = 0</string>
+    <string name="temperature_precise_label">Точный</string>
+    <string name="temperature_balanced_title">temperature = 0.7</string>
+    <string name="temperature_balanced_label">Баланс</string>
+    <string name="temperature_creative_title">temperature = 1.2</string>
+    <string name="temperature_creative_label">Креативный</string>
+    <string name="temperature_waiting_for_answer">Ответ появится после запуска.</string>
+    <string name="temperature_expand_answer">Развернуть</string>
+    <string name="temperature_collapse_answer">Свернуть</string>
+    <string name="temperature_conclusion_title">Выводы по температуре</string>
+    <string name="temperature_conclusion_loading">Формируем сравнение ответов</string>
+    <string name="error_enter_temperature_prompt">Введите запрос для эксперимента.</string>
+    <string name="error_no_temperature_answers">Не удалось получить ответы для сравнения.</string>
+
     <string name="error_enter_message">Введите сообщение перед отправкой.</string>
     <string name="error_empty_response">DeepSeek вернул пустой ответ.</string>
     <string name="error_token_limit">Лимит токенов закончился до формирования финального ответа.</string>
@@ -140,6 +158,43 @@
 Итог:
 <короткий вывод>]]></string>
 
+    <string name="temperature_answer_template"><![CDATA[%1$s:
+%2$s]]></string>
+    <string name="temperature_comparison_prompt_template"><![CDATA[Ниже приведены ответы одной модели на один и тот же запрос, но с разными значениями temperature.
+
+Исходный запрос:
+%1$s
+
+Ответы:
+%2$s
+
+Сравни ответы по трем критериям:
+* точность;
+* креативность;
+* разнообразие.
+
+Не пересказывай ответы полностью.
+Сформулируй, для каких задач лучше подходит каждое значение temperature.
+
+Формат ответа:
+
+Точность:
+<краткое сравнение>
+
+Креативность:
+<краткое сравнение>
+
+Разнообразие:
+<краткое сравнение>
+
+Где использовать:
+* temperature = 0: ...
+* temperature = 0.7: ...
+* temperature = 1.2: ...
+
+Итог:
+<короткий вывод>]]></string>
+
     <string name="preview_prompt">Расскажи о языке Kotlin</string>
     <string name="preview_last_response">Kotlin — современный язык программирования.</string>
     <string name="preview_unrestricted_response">Kotlin — современный язык для Android и серверной разработки.</string>
@@ -154,4 +209,8 @@
     <string name="preview_reasoning_expert_answer">Аналитик: выделяет ограничения.\nИнженер: строит последовательность действий.\nКритик: проверяет решение на ошибки.</string>
     <string name="preview_reasoning_comparison">| Способ | Точность | Полнота | Понятность | Комментарий |\n| ------ | -------- | ------- | ---------- | ----------- |\n| Пошаговый | Высокая | Высокая | Высокая | Показывает проверку ограничений |</string>
     <string name="preview_reasoning_summary">Итог: пошаговый и экспертный подходы легче проверять на ошибки.</string>
+    <string name="preview_temperature_prompt">Придумай 3 идеи Android-приложения для изучения Kotlin.</string>
+    <string name="preview_temperature_precise_answer">1. Трекер задач с Kotlin-фичами.\n2. Викторина по синтаксису.\n3. Мини-проект с Jetpack Compose.</string>
+    <string name="preview_temperature_balanced_answer">1. Kotlin Quest с короткими заданиями.\n2. Compose Lab для UI-экспериментов.\n3. Debug Arena с поиском ошибок.</string>
+    <string name="preview_temperature_conclusion">temperature = 0 лучше для точных объяснений, 0.7 подходит для сбалансированных идей, 1.2 полезна для креативного брейншторма.</string>
 </resources>
