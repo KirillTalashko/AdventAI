@@ -12,10 +12,12 @@ import com.example.adventai.R
 import com.example.core.designsystem.component.AppScaffold
 import com.example.feature.chat.presentation.navigation.ChatDestination
 import com.example.feature.chat.presentation.navigation.Day2FormatDestination
+import com.example.feature.chat.presentation.navigation.ModelComparisonDestination
 import com.example.feature.chat.presentation.navigation.ReasoningDestination
 import com.example.feature.chat.presentation.navigation.TemperatureDestination
 import com.example.feature.chat.presentation.navigation.chatScreen
 import com.example.feature.chat.presentation.navigation.day2FormatScreen
+import com.example.feature.chat.presentation.navigation.modelComparisonScreen
 import com.example.feature.chat.presentation.navigation.reasoningScreen
 import com.example.feature.chat.presentation.navigation.temperatureScreen
 import com.example.feature.home.presentation.navigation.HomeDestination
@@ -54,12 +56,16 @@ fun AppNavHost() {
                 },
                 onOpenDay4Temperature = {
                     navController.navigate(TemperatureDestination.ROUTE)
+                },
+                onOpenDay5Models = {
+                    navController.navigate(ModelComparisonDestination.ROUTE)
                 }
             )
             chatScreen()
             day2FormatScreen()
             reasoningScreen()
             temperatureScreen()
+            modelComparisonScreen()
         }
     }
 }

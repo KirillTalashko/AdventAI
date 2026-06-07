@@ -28,6 +28,7 @@ fun HomeScreen(
     onOpenDay2Format: () -> Unit,
     onOpenDay3Reasoning: () -> Unit,
     onOpenDay4Temperature: () -> Unit,
+    onOpenDay5Models: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val modules = listOf(
@@ -50,6 +51,11 @@ fun HomeScreen(
             title = stringResource(R.string.home_temperature_title),
             description = stringResource(R.string.home_temperature_description),
             onClick = onOpenDay4Temperature
+        ),
+        LearningModule(
+            title = stringResource(R.string.home_models_title),
+            description = stringResource(R.string.home_models_description),
+            onClick = onOpenDay5Models
         )
     )
 
@@ -112,7 +118,8 @@ private fun HomeScreenPreview() {
             onOpenChat = {},
             onOpenDay2Format = {},
             onOpenDay3Reasoning = {},
-            onOpenDay4Temperature = {}
+            onOpenDay4Temperature = {},
+            onOpenDay5Models = {}
         )
     }
 }

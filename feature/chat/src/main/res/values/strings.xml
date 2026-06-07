@@ -78,6 +78,40 @@
     <string name="error_enter_temperature_prompt">Введите запрос для эксперимента.</string>
     <string name="error_no_temperature_answers">Не удалось получить ответы для сравнения.</string>
 
+    <string name="model_screen_title">День 5. Версии моделей</string>
+    <string name="model_prompt_label">Запрос</string>
+    <string name="model_prompt_placeholder">Введите один запрос для сравнения моделей</string>
+    <string name="model_run_button">Сравнить модели</string>
+    <string name="model_deepseek_title">DeepSeek</string>
+    <string name="model_deepseek_label">V4 Flash</string>
+    <string name="model_llama_title">Llama 3.3</string>
+    <string name="model_llama_label">OpenRouter free</string>
+    <string name="model_gemma_title">Gemma 4</string>
+    <string name="model_gemma_label">OpenRouter free</string>
+    <string name="model_qwen_title">Qwen3 Next</string>
+    <string name="model_qwen_label">OpenRouter free</string>
+    <string name="model_gpt_oss_title">GPT-OSS 20B</string>
+    <string name="model_gpt_oss_label">OpenRouter free</string>
+    <string name="model_metric_time">Время: %1$d мс</string>
+    <string name="model_metric_time_unknown">Время: ожидается</string>
+    <string name="model_metric_tokens">Токены: input %1$d, output %2$d, total %3$d</string>
+    <string name="model_metric_tokens_unknown">Токены: ожидаются</string>
+    <string name="model_metric_cost">Стоимость: $%1$.6f</string>
+    <string name="model_metric_cost_unknown">Стоимость: ожидается</string>
+    <string name="model_docs_label">Ссылка: %1$s</string>
+    <string name="model_waiting_for_answer">Ответ появится после запуска.</string>
+    <string name="model_expand_answer">Развернуть</string>
+    <string name="model_collapse_answer">Свернуть</string>
+    <string name="model_conclusion_title">Вывод по моделям</string>
+    <string name="model_conclusion_loading">Формируем сравнение моделей</string>
+    <string name="error_enter_model_prompt">Введите запрос для сравнения моделей.</string>
+    <string name="error_no_model_answers">Не удалось получить ответы для сравнения моделей.</string>
+    <string name="deepseek_pricing_url">https://api-docs.deepseek.com/quick_start/pricing</string>
+    <string name="openrouter_llama_url">https://openrouter.ai/meta-llama/llama-3.3-70b-instruct:free</string>
+    <string name="openrouter_gemma_url">https://openrouter.ai/google/gemma-4-31b-it:free</string>
+    <string name="openrouter_qwen_url">https://openrouter.ai/qwen/qwen3-next-80b-a3b-instruct:free</string>
+    <string name="openrouter_gpt_oss_url">https://openrouter.ai/openai/gpt-oss-20b:free</string>
+
     <string name="error_enter_message">Введите сообщение перед отправкой.</string>
     <string name="error_empty_response">DeepSeek вернул пустой ответ.</string>
     <string name="error_token_limit">Лимит токенов закончился до формирования финального ответа.</string>
@@ -158,6 +192,50 @@
 Итог:
 <короткий вывод>]]></string>
 
+    <string name="model_answer_template"><![CDATA[%1$s
+Время: %2$d мс
+Токены total: %3$d
+Стоимость USD: %4$.6f
+Ответ:
+%5$s]]></string>
+    <string name="model_comparison_prompt_template"><![CDATA[Ниже приведены ответы разных уровней модели на один и тот же запрос.
+
+Исходный запрос:
+%1$s
+
+Результаты:
+%2$s
+
+Сравни ответы по критериям:
+* качество ответа;
+* скорость;
+* ресурсоемкость;
+* стоимость.
+
+Не пересказывай ответы полностью.
+Сформулируй короткий вывод о различиях между моделями и для каких задач подходит каждый уровень.
+
+Формат ответа:
+
+Качество:
+<краткое сравнение>
+
+Скорость:
+<краткое сравнение>
+
+Ресурсоемкость:
+<краткое сравнение по токенам и стоимости>
+
+Где использовать:
+* DeepSeek: ...
+* Llama 3.3: ...
+* Gemma 4: ...
+* Qwen3 Next: ...
+* GPT-OSS 20B: ...
+
+Итог:
+<короткий вывод>]]></string>
+
     <string name="temperature_answer_template"><![CDATA[%1$s:
 %2$s]]></string>
     <string name="temperature_comparison_prompt_template"><![CDATA[Ниже приведены ответы одной модели на один и тот же запрос, но с разными значениями temperature.
@@ -213,4 +291,7 @@
     <string name="preview_temperature_precise_answer">1. Трекер задач с Kotlin-фичами.\n2. Викторина по синтаксису.\n3. Мини-проект с Jetpack Compose.</string>
     <string name="preview_temperature_balanced_answer">1. Kotlin Quest с короткими заданиями.\n2. Compose Lab для UI-экспериментов.\n3. Debug Arena с поиском ошибок.</string>
     <string name="preview_temperature_conclusion">temperature = 0 лучше для точных объяснений, 0.7 подходит для сбалансированных идей, 1.2 полезна для креативного брейншторма.</string>
+    <string name="preview_model_prompt">Объясни, когда Android-разработчику использовать Hilt.</string>
+    <string name="preview_model_deepseek_answer">Hilt стоит использовать, когда в проекте много зависимостей и нужно упростить DI. Он уменьшает ручное создание объектов и хорошо работает с ViewModel.</string>
+    <string name="preview_model_conclusion">DeepSeek удобен как базовая платная модель, а бесплатные OpenRouter-модели полезны для сравнения качества, скорости и ограничений разных провайдеров.</string>
 </resources>

@@ -9,4 +9,6 @@
     <string name="home_reasoning_description">Прямой ответ, пошаговое решение, промпт и группа экспертов</string>
     <string name="home_temperature_title">День 4. Температура</string>
     <string name="home_temperature_description">Сравнение ответов при temperature 0, 0.7 и 1.2</string>
+    <string name="home_models_title">День 5. Версии моделей</string>
+    <string name="home_models_description">Качество, скорость, токены и стоимость разных уровней модели</string>
 </resources>

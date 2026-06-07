@@ -16,6 +16,7 @@ val localProperties = Properties().apply {
 }
 
 val deepSeekApiKey = localProperties.getProperty("DEEPSEEK_API_KEY", "")
+val openRouterApiKey = localProperties.getProperty("OPENROUTER_API_KEY", "")
 
 android {
     namespace = "com.example.core.network"
@@ -30,6 +31,11 @@ android {
             "String",
             "DEEPSEEK_API_KEY",
             "\"$deepSeekApiKey\""
+        )
+        buildConfigField(
+            "String",
+            "OPENROUTER_API_KEY",
+            "\"$openRouterApiKey\""
         )
     }
 

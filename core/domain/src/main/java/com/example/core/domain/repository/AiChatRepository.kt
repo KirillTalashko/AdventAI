@@ -14,4 +14,10 @@ interface AiChatRepository {
         message: String,
         options: ChatRequestOptions = ChatRequestOptions()
     ): AppResult<LlmAnswer>
+
+    suspend fun sendOpenRouterDetailedMessage(
+        message: String,
+        modelId: String,
+        options: ChatRequestOptions = ChatRequestOptions()
+    ): AppResult<LlmAnswer>
 }
