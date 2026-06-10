@@ -4,6 +4,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.example.feature.chat.presentation.format.screen.FormatRoute
+import com.example.feature.chat.presentation.modelcomparison.screen.ModelComparisonRoute
 import com.example.feature.chat.presentation.reasoning.screen.ReasoningRoute
 import com.example.feature.chat.presentation.screen.ChatRoute
 import com.example.feature.chat.presentation.temperature.screen.TemperatureRoute
@@ -22,6 +23,10 @@ object ReasoningDestination {
 
 object TemperatureDestination {
     const val ROUTE = "temperature"
+}
+
+object ModelComparisonDestination {
+    const val ROUTE = "model_comparison"
 }
 
 fun NavGraphBuilder.chatScreen() {
@@ -45,5 +50,11 @@ fun NavGraphBuilder.reasoningScreen() {
 fun NavGraphBuilder.temperatureScreen() {
     composable(route = TemperatureDestination.ROUTE) {
         TemperatureRoute(viewModel = hiltViewModel())
+    }
+}
+
+fun NavGraphBuilder.modelComparisonScreen() {
+    composable(route = ModelComparisonDestination.ROUTE) {
+        ModelComparisonRoute(viewModel = hiltViewModel())
     }
 }

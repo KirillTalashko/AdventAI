@@ -10,10 +10,21 @@ data class ChatRequestOptions(
 )
 
 enum class DeepSeekModel(
-    val apiName: String
+    val apiName: String,
+    val supportsThinkingParameter: Boolean = false,
+    val supportsTemperature: Boolean = false
 ) {
-    Fast("deepseek-v4-flash"),
-    Reasoner("deepseek-reasoner")
+    Fast(
+        apiName = "deepseek-v4-flash",
+        supportsThinkingParameter = true,
+        supportsTemperature = true
+    ),
+    Pro(
+        apiName = "deepseek-v4-pro",
+        supportsThinkingParameter = true,
+        supportsTemperature = true
+    ),
+    Reasoner(apiName = "deepseek-reasoner")
 }
 
 enum class ThinkingMode {

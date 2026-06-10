@@ -7,11 +7,13 @@ import com.example.core.common.DispatcherProvider
 import com.example.core.data.ai.mapper.Either
 import com.example.core.data.ai.mapper.toChatRequestDto
 import com.example.core.data.ai.mapper.toLlmAnswerOrError
+import com.example.core.data.ai.mapper.toOpenRouterChatRequestDto
 import com.example.core.data.ai.mapper.toUserChatMessage
 import com.example.core.domain.repository.AiChatRepository
 import com.example.core.model.ai.ChatRequestOptions
 import com.example.core.model.ai.LlmAnswer
 import com.example.core.network.api.DeepSeekApi
+import com.example.core.network.api.OpenRouterApi
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 import java.io.IOException
@@ -23,6 +25,7 @@ import javax.net.ssl.SSLException
 
 class AiChatRepositoryImpl @Inject constructor(
     private val deepSeekApi: DeepSeekApi,
+    private val openRouterApi: OpenRouterApi,
     private val dispatchers: DispatcherProvider = DefaultDispatcherProvider
 ) : AiChatRepository {
     override suspend fun sendMessage(
@@ -42,6 +45,39 @@ class AiChatRepositoryImpl @Inject constructor(
             val request = message.toUserChatMessage().toChatRequestDto(options)
 
             when (val answer = deepSeekApi.sendMessage(request).toLlmAnswerOrError()) {
+                is Either.Left -> AppResult.Error(answer.value)
+                is Either.Right -> AppResult.Success(answer.value)
+            }
+        } catch (exception: UnknownHostException) {
+            AppResult.Error(AppError.UnknownHost)
+        } catch (exception: SocketTimeoutException) {
+            AppResult.Error(AppError.Timeout)
+        } catch (exception: ConnectException) {
+            AppResult.Error(AppError.Connection)
+        } catch (exception: SSLException) {
+            AppResult.Error(AppError.SecureConnection(exception.safeMessage()))
+        } catch (exception: IOException) {
+            AppResult.Error(AppError.NetworkDetails(exception.safeMessage()))
+        } catch (exception: HttpException) {
+            AppResult.Error(exception.toAppError())
+        } catch (exception: Exception) {
+            AppResult.Error(AppError.Unknown(exception.message))
+        }
+    }
+
+    override suspend fun sendOpenRouterDetailedMessage(
+        message: String,
+        modelId: String,
+        options: ChatRequestOptions
+    ): AppResult<LlmAnswer> = withContext(dispatchers.io) {
+        try {
+            val request = message.toUserChatMessage()
+                .toOpenRouterChatRequestDto(
+                    modelId = modelId,
+                    options = options
+                )
+
+            when (val answer = openRouterApi.sendMessage(request).toLlmAnswerOrError()) {
                 is Either.Left -> AppResult.Error(answer.value)
                 is Either.Right -> AppResult.Success(answer.value)
             }

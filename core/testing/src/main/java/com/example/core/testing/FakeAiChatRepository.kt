@@ -39,4 +39,13 @@ class FakeAiChatRepository : AiChatRepository {
         receivedMessages += message
         return result
     }
+
+    override suspend fun sendOpenRouterDetailedMessage(
+        message: String,
+        modelId: String,
+        options: ChatRequestOptions
+    ): AppResult<LlmAnswer> {
+        receivedMessages += message
+        return result
+    }
 }

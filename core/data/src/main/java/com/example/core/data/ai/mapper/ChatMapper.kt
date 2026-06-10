@@ -3,13 +3,14 @@ package com.example.core.data.ai.mapper
 import com.example.core.common.AppError
 import com.example.core.model.ai.ChatMessage
 import com.example.core.model.ai.ChatRequestOptions
-import com.example.core.model.ai.DeepSeekModel
 import com.example.core.model.ai.LlmAnswer
 import com.example.core.model.ai.ThinkingMode
+import com.example.core.model.ai.TokenUsage
 import com.example.core.network.dto.ChatRequestDto
 import com.example.core.network.dto.ChatResponseDto
 import com.example.core.network.dto.MessageDto
 import com.example.core.network.dto.ThinkingDto
+import com.example.core.network.dto.UsageDto
 
 private const val SYSTEM_ROLE = "system"
 private const val USER_ROLE = "user"
@@ -23,8 +24,22 @@ fun ChatMessage.toChatRequestDto(options: ChatRequestOptions): ChatRequestDto =
     ChatRequestDto(
         model = options.model.apiName,
         messages = options.toMessageDtos(userMessage = this),
-        thinking = options.thinkingMode.takeIf { options.model == DeepSeekModel.Fast }?.toThinkingDto(),
-        temperature = options.temperature.takeIf { options.model == DeepSeekModel.Fast },
+        thinking = options.thinkingMode
+            .takeIf { options.model.supportsThinkingParameter }
+            ?.toThinkingDto(),
+        temperature = options.temperature.takeIf { options.model.supportsTemperature },
+        maxTokens = options.maxTokens,
+        stop = options.stop.takeIf { it.isNotEmpty() }
+    )
+
+fun ChatMessage.toOpenRouterChatRequestDto(
+    modelId: String,
+    options: ChatRequestOptions
+): ChatRequestDto =
+    ChatRequestDto(
+        model = modelId,
+        messages = options.toMessageDtos(userMessage = this),
+        temperature = options.temperature,
         maxTokens = options.maxTokens,
         stop = options.stop.takeIf { it.isNotEmpty() }
     )
@@ -38,7 +53,8 @@ fun ChatResponseDto.toLlmAnswerOrError(): Either<AppError, LlmAnswer> {
         content != null -> Either.Right(
             LlmAnswer(
                 content = content,
-                reasoningContent = message?.reasoningContent?.takeIf(String::isNotBlank)
+                reasoningContent = message?.reasoningContent?.takeIf(String::isNotBlank),
+                usage = usage?.toTokenUsage()
             )
         )
 
@@ -53,6 +69,15 @@ private fun ChatMessage.toMessageDto(): MessageDto =
 private fun ThinkingMode.toThinkingDto(): ThinkingDto = when (this) {
     ThinkingMode.Disabled -> ThinkingDto(type = THINKING_DISABLED)
 }
+
+private fun UsageDto.toTokenUsage(): TokenUsage =
+    TokenUsage(
+        promptTokens = promptTokens ?: 0,
+        completionTokens = completionTokens ?: 0,
+        totalTokens = totalTokens ?: ((promptTokens ?: 0) + (completionTokens ?: 0)),
+        promptCacheHitTokens = promptCacheHitTokens ?: 0,
+        promptCacheMissTokens = promptCacheMissTokens ?: promptTokens ?: 0
+    )
 
 private fun ChatRequestOptions.toMessageDtos(userMessage: ChatMessage): List<MessageDto> =
     buildList {
