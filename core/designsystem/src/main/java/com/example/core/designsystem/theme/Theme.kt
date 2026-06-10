@@ -9,15 +9,33 @@ import androidx.compose.runtime.Composable
 private val LightColorScheme = lightColorScheme(
     primary = AdventPrimary,
     onPrimary = AdventOnPrimary,
+    primaryContainer = AdventPrimaryContainer,
+    onPrimaryContainer = AdventOnPrimaryContainer,
     secondary = AdventSecondary,
-    tertiary = AdventTertiary
+    secondaryContainer = AdventSecondaryContainer,
+    onSecondaryContainer = AdventOnSecondaryContainer,
+    tertiary = AdventTertiary,
+    tertiaryContainer = AdventTertiaryContainer,
+    onTertiaryContainer = AdventOnTertiaryContainer,
+    background = AdventBackground,
+    surface = AdventSurface,
+    surfaceContainer = AdventSurfaceContainer,
+    surfaceContainerLow = AdventSurface,
+    surfaceVariant = AdventSurfaceVariant,
+    outlineVariant = AdventOutlineVariant
 )
 
 private val DarkColorScheme = darkColorScheme(
     primary = AdventPrimary,
     onPrimary = AdventOnPrimary,
+    primaryContainer = AdventOnPrimaryContainer,
+    onPrimaryContainer = AdventPrimaryContainer,
     secondary = AdventSecondary,
-    tertiary = AdventTertiary
+    secondaryContainer = AdventOnSecondaryContainer,
+    onSecondaryContainer = AdventSecondaryContainer,
+    tertiary = AdventTertiary,
+    tertiaryContainer = AdventOnTertiaryContainer,
+    onTertiaryContainer = AdventTertiaryContainer
 )
 
 @Composable

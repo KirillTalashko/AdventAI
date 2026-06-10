@@ -9,19 +9,13 @@ object HomeDestination {
 }
 
 fun NavGraphBuilder.homeScreen(
-    onOpenChat: () -> Unit,
-    onOpenDay2Format: () -> Unit,
-    onOpenDay3Reasoning: () -> Unit,
-    onOpenDay4Temperature: () -> Unit,
-    onOpenDay5Models: () -> Unit
+    onOpenAgent: (String) -> Unit
 ) {
     composable(route = HomeDestination.ROUTE) {
         HomeScreen(
-            onOpenChat = onOpenChat,
-            onOpenDay2Format = onOpenDay2Format,
-            onOpenDay3Reasoning = onOpenDay3Reasoning,
-            onOpenDay4Temperature = onOpenDay4Temperature,
-            onOpenDay5Models = onOpenDay5Models
+            onOpenAgent = onOpenAgent,
+            visaAgentId = "visa",
+            newAgentId = "new"
         )
     }
 }
