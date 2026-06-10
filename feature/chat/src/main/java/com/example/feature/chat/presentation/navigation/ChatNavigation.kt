@@ -1,7 +1,9 @@
 package com.example.feature.chat.presentation.navigation
 
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.navigation.NavType
 import androidx.navigation.NavGraphBuilder
+import androidx.navigation.navArgument
 import androidx.navigation.compose.composable
 import com.example.feature.chat.presentation.format.screen.FormatRoute
 import com.example.feature.chat.presentation.modelcomparison.screen.ModelComparisonRoute
@@ -10,7 +12,12 @@ import com.example.feature.chat.presentation.screen.ChatRoute
 import com.example.feature.chat.presentation.temperature.screen.TemperatureRoute
 
 object ChatDestination {
-    const val ROUTE = "chat"
+    const val AGENT_ID_ARGUMENT = "agentId"
+    const val VISA_AGENT_ID = "visa"
+    const val NEW_AGENT_ID = "new"
+    const val ROUTE = "agent/{$AGENT_ID_ARGUMENT}"
+
+    fun createRoute(agentId: String): String = "agent/$agentId"
 }
 
 object Day2FormatDestination {
@@ -29,9 +36,21 @@ object ModelComparisonDestination {
     const val ROUTE = "model_comparison"
 }
 
-fun NavGraphBuilder.chatScreen() {
-    composable(route = ChatDestination.ROUTE) {
-        ChatRoute(viewModel = hiltViewModel())
+fun NavGraphBuilder.chatScreen(
+    onNavigateBack: () -> Unit
+) {
+    composable(
+        route = ChatDestination.ROUTE,
+        arguments = listOf(
+            navArgument(ChatDestination.AGENT_ID_ARGUMENT) {
+                type = NavType.StringType
+            }
+        )
+    ) {
+        ChatRoute(
+            viewModel = hiltViewModel(),
+            onNavigateBack = onNavigateBack
+        )
     }
 }
 
