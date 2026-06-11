@@ -3,7 +3,9 @@ package com.example.core.data.di
 import com.example.core.common.DefaultDispatcherProvider
 import com.example.core.common.DispatcherProvider
 import com.example.core.data.ai.repository.AiChatRepositoryImpl
+import com.example.core.data.ai.repository.ChatHistoryRepositoryImpl
 import com.example.core.domain.repository.AiChatRepository
+import com.example.core.domain.repository.ChatHistoryRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -19,6 +21,12 @@ abstract class DataModule {
     abstract fun bindAiChatRepository(
         implementation: AiChatRepositoryImpl
     ): AiChatRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindChatHistoryRepository(
+        implementation: ChatHistoryRepositoryImpl
+    ): ChatHistoryRepository
 
     companion object {
         @Provides

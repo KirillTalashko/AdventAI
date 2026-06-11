@@ -44,7 +44,9 @@ enum class AgentLlmModel(
 
 data class AgentChatMessage(
     val author: AgentMessageAuthor,
-    val text: String
+    val text: String,
+    /** Момент создания (epoch ms). 0 = ещё не присвоен (проставится при сохранении). */
+    val createdAt: Long = 0L
 )
 
 enum class AgentMessageAuthor {

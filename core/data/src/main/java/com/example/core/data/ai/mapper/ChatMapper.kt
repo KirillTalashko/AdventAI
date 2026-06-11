@@ -44,6 +44,30 @@ fun ChatMessage.toOpenRouterChatRequestDto(
         stop = options.stop.takeIf { it.isNotEmpty() }
     )
 
+fun List<ChatMessage>.toChatRequestDto(options: ChatRequestOptions): ChatRequestDto =
+    ChatRequestDto(
+        model = options.model.apiName,
+        messages = options.toMessageDtos(conversation = this),
+        thinking = options.thinkingMode
+            .takeIf { options.model.supportsThinkingParameter }
+            ?.toThinkingDto(),
+        temperature = options.temperature.takeIf { options.model.supportsTemperature },
+        maxTokens = options.maxTokens,
+        stop = options.stop.takeIf { it.isNotEmpty() }
+    )
+
+fun List<ChatMessage>.toOpenRouterChatRequestDto(
+    modelId: String,
+    options: ChatRequestOptions
+): ChatRequestDto =
+    ChatRequestDto(
+        model = modelId,
+        messages = options.toMessageDtos(conversation = this),
+        temperature = options.temperature,
+        maxTokens = options.maxTokens,
+        stop = options.stop.takeIf { it.isNotEmpty() }
+    )
+
 fun ChatResponseDto.toLlmAnswerOrError(): Either<AppError, LlmAnswer> {
     val choice = choices.firstOrNull() ?: return Either.Left(AppError.EmptyResponse)
     val message = choice.message
@@ -87,6 +111,18 @@ private fun ChatRequestOptions.toMessageDtos(userMessage: ChatMessage): List<Mes
                 add(MessageDto(role = SYSTEM_ROLE, content = prompt))
             }
         add(userMessage.toMessageDto())
+    }
+
+private fun ChatRequestOptions.toMessageDtos(conversation: List<ChatMessage>): List<MessageDto> =
+    buildList {
+        systemPrompt
+            ?.takeIf(String::isNotBlank)
+            ?.let { prompt ->
+                add(MessageDto(role = SYSTEM_ROLE, content = prompt))
+            }
+        conversation.forEach { message ->
+            add(message.toMessageDto())
+        }
     }
 
 sealed interface Either<out L, out R> {

@@ -1,129 +1,165 @@
-# AdventAI Screen Requirements
+# AdventAI — Product Design Spec (Redesign 2026)
 
-## General Requirements
+> Это продуктовый дизайн-бриф и одновременно «промт» для реализации UI. Цель — поднять приложение с
+> уровня «учебный демо-экран» до уровня **продакшн-продукта** калибра Telegram / ChatGPT / Linear.
+> Лучшие решения берём у топовых приложений и адаптируем под продукт: AI-агент, который **ищет
+> информацию по визам**, **работает с документами** и **готовит клиента к подаче**.
 
-All screens must:
-- work on small and large Android devices;
-- avoid overlap with system bars;
-- avoid text overflow;
-- use the shared blue-white design system;
-- keep business logic outside Compose UI;
-- compile after changes with `.\gradlew.bat :app:compileDebugKotlin --console=plain`.
+## 0. Видение
 
-Do not restore old learning-day screens to the visible navigation unless explicitly requested.
+AdventAI — спокойный, надёжный, премиальный ассистент для **высокоставочной задачи** (виза = деньги,
+сроки, риск отказа). Поэтому дизайн должен внушать **доверие и контроль**, а не «играть». Три опоры:
 
-## Home Screen
+1. **Разговор** — ядро продукта. Чат уровня Telegram: быстрый, плавный, с богатыми сообщениями.
+2. **Документы** — агент помогает собрать и проверить пакет. Чек-листы и статусы как в финтехе.
+3. **Готовность к подаче** — измеримый прогресс клиента к цели (как onboarding-прогресс в банках).
 
-Module:
-- `feature:home`
+## 1. Принципы (и откуда берём)
 
-Primary file:
-- `feature/home/src/main/java/com/example/feature/home/presentation/screen/HomeScreen.kt`
+| Принцип | Что значит | Референс |
+|---|---|---|
+| Content-first, спокойные поверхности | Нейтральный фон, белые карточки, один уверенный акцент, воздух | Telegram, Linear, Things |
+| Разговор без трения | Мгновенный ввод, плавная клавиатура, стриминг ответа, «печатает…» | Telegram, ChatGPT, Claude |
+| Доверие и статус | Чек-листы документов, прогресс подачи, источники, дисклеймеры | Revolut/Monzo onboarding, Госуслуги |
+| Сдержанная анимация | Spring-переходы, осмысленные, не «прыгающие» | iOS, Telegram, Material 3 Expressive |
+| Тёмная тема и доступность | Полноценные light/dark, контраст, динамический шрифт | Telegram, Material 3 |
 
-Purpose:
-- show available AI agents;
-- let the user open an existing agent;
-- let the user start creating a new agent.
+## 2. Дизайн-язык (кратко; токены — в `DESIGN_SYSTEM.md`)
 
-Current requirements:
-- horizontal carousel based on `LazyRow`;
-- centered card is larger than side cards;
-- snap behavior with `rememberSnapFlingBehavior`;
-- scale is calculated from item distance to viewport center;
-- cards must be adaptive to screen width and height;
-- first and last cards should center correctly through content padding;
-- no visible `AdventAI` title in a top bar;
-- no `Day 6` label;
-- old challenge days must not be visible.
+Редизайн **эволюционирует** фирменный сине-белый, не ломая узнаваемость:
 
-Cards:
-- `Визовый специалист`;
-- `Добавить агента`.
+- **Палитра:** нейтральная база (off-white / графит в dark) + **один акцент — продуктовый синий**.
+  Акцент используется точечно: отправка, активные состояния, прогресс. Семантические цвета (успех/
+  предупреждение/ошибка) — только для статусов документов, приглушённые.
+- **Поверхности (как в Telegram/Linear):** `background` (нейтральный) → `surface` (карточки) →
+  `surfaceContainer` (вложенные блоки). Разделение тенью **или** заливкой, не обоими сразу.
+- **Форма:** карточки `20–28dp`, поля ввода/композер `24dp` (pill), bottom sheet `28dp` сверху,
+  иконичные кнопки `CircleShape`. Пузыри чата `20dp` со «сглаженным углом» у автора.
+- **Типографика:** один шрифт, чёткая шкала (Display/Title/Body/Label). Заголовки короткие, тело —
+  читаемое, длинные строки переносим, не обрезаем смысл.
+- **Elevation/motion:** тени мягкие и низкие; переходы — `spring` (medium bounce), длительность
+  180–260ms; появление сообщений — лёгкий fade+slide.
+- **Dark mode — обязателен** (а не инверсия): отдельная нейтральная тёмная палитра, акцент чуть мягче.
 
-Card design:
-- blue-white palette;
-- no rectangular gray corners;
-- no standard `Card` artifacts if they create visible rectangular edges;
-- inner visual blocks must be rounded on all corners;
-- text must use `maxLines` and ellipsis.
+> Это требует обновить `DESIGN_SYSTEM.md` (dark-палитра, шкала отступов 4/8/12/16/24, типошкала,
+> токены статусов). Делать вместе с реализацией.
 
-## Chat Screen
+## 3. Структура и навигация
 
-Module:
-- `feature:chat`
+Нижняя навигация (как в Telegram/банках) из **3 вкладок** — продукт перестаёт быть «одним чатом»:
 
-Primary file:
-- `feature/chat/src/main/java/com/example/feature/chat/presentation/screen/ChatScreen.kt`
+1. **Чат** (Home → диалог с агентом) — основная вкладка.
+2. **Документы** — чек-лист пакета и загрузки.
+3. **Готовность** — прогресс к подаче, сводка, следующий шаг.
 
-Purpose:
-- let the user chat with the selected AI agent;
-- show agent responses;
-- open agent settings.
+Правила: стартовая вкладка — Чат; системные бары не перекрывать; старые «дни заданий» в навигацию не
+возвращать; глобальный top bar не дублировать с кастомными шапками экранов.
 
-Top panel requirements:
-- custom top panel inside `ChatScreen`;
-- must use `statusBarsPadding()`;
-- back button on the left;
-- settings button on the top right;
-- settings icon should be a standard Material-style vector icon;
-- no self-made Canvas settings icon;
-- no overlap with system time/status bar.
+> На текущем этапе челленджа можно начать **только с Чата** (вкладка-заглушки добавить позже), но
+> архитектуру навигации заложить под 3 вкладки.
 
-Message list:
-- should fill available space between top panel and input composer;
-- should scroll normally;
-- should keep latest message visible after sending.
+## 4. Экран «Чат» (Home → диалог)
 
-Input composer:
-- anchored at the bottom;
-- app activity uses `android:windowSoftInputMode="adjustNothing"` so Compose owns IME positioning;
-- uses `navigationBarsPadding()`;
-- uses `imePadding()` only on the composer/bottom area;
-- message list may use `imeNestedScroll()` for smoother keyboard animation;
-- must not make the whole screen jump when keyboard opens;
-- send action should be available from keyboard IME action and send button.
+Объединяем «список агентов» и «диалог» в единый продуктовый поток, как в ChatGPT/Telegram, без
+карусели-аттракциона.
 
-Settings bottom sheet:
-- opens from the settings icon;
-- height around 80% of screen;
-- rounded top corners;
-- includes:
-  - agent name;
-  - dialog theme;
-  - model selector;
-  - system prompt.
+### 4.1. Стартовое состояние (пустой/новый диалог) — как ChatGPT/Claude home
+- Шапка: аватар агента + имя + статус (`онлайн` / `печатает…`).
+- По центру — короткое приветствие агента и **карточка готовности** («Готовность к подаче — 60%»,
+  ведёт во вкладку «Готовность»).
+- **Чипы-подсказки** над композером (suggested prompts) — снимают «страх чистого листа»:
+  «Какие документы нужны?», «Сроки подачи в …», «Риски отказа», «Проверь мой пакет».
+- Выбор/смена агента — компактный селектор в шапке (не карусель на весь экран).
 
-Model selector:
-- should use rounded selectable cards;
-- should not be a plain dropdown unless explicitly requested.
+### 4.2. Лента сообщений (Telegram-grade)
+- **Пузыри:** пользователь справа (акцент/контраст), агент слева (surface). Скругление `20dp`,
+  «хвост»-угол только у крайнего сообщения группы.
+- **Группировка** подряд идущих сообщений одного автора, **один timestamp** на группу (Telegram/iMessage).
+- **Разделители дат** («Сегодня», «Вчера») закреплённой плашкой при скролле.
+- **Индикатор «агент печатает…»** + **стриминг** текста по мере генерации (ChatGPT/Claude).
+- **Действия по long-press**: копировать, повторить ответ (regenerate), поделиться (контекст-меню как
+  в Telegram). Для ответа агента — «копировать», «ещё раз».
+- **Богатые сообщения вместо сырого markdown:**
+  - чек-лист документов → карточка с пунктами и статусами (не простыня текста);
+  - источник/правило → чип-ссылка «источник»;
+  - предупреждение/дисклеймер → выделенный блок (приглушённый warning).
+- **Скролл:** кнопка «вниз» (FAB) при отскролле вверх; после отправки лента держит последнее сообщение.
 
-## Agent Logic
+### 4.3. Композер (как в Telegram)
+- Pill-инпут, многострочный авто-рост (до ~5 строк), затем внутренний скролл.
+- Слева — **кнопка вложения** `+`/📎 (фото паспорта, скан документа — под продукт «работа с документами»).
+- Справа — кнопка отправки; при пустом поле может показываться второстепенное действие (напр. голос),
+  при наборе морфится в «отправить» (Telegram).
+- Клавиатура: `adjustNothing` + `imePadding()` только на композере; лента — `imeNestedScroll()`.
+- Отправка доступна и с IME-action, и с кнопки; во время генерации кнопка → «стоп» (отмена запроса).
 
-Agent logic should stay separate from UI.
+### 4.4. Шапка чата
+- Кастомная, с `statusBarsPadding()`. Слева — назад/меню, по центру/слева — аватар+имя+статус,
+  справа — overflow (настройки агента, очистить диалог, сменить агента).
 
-Relevant files:
-- `core/model/src/main/java/com/example/core/model/ai/AgentModels.kt`
-- `core/domain/src/main/java/com/example/core/domain/agent/AiAgent.kt`
-- `feature/chat/src/main/java/com/example/feature/chat/presentation/viewmodel/ChatViewModel.kt`
+## 5. Bottom sheet «Настройки агента»
 
-Requirements:
-- UI sends user input to `ViewModel`;
-- `ViewModel` delegates to `AiAgent`;
-- `AiAgent` builds request context from agent config;
-- repository/network layer performs API calls.
+Модальный лист (~85% высоты, верхние углы `28dp`), секциями (как настройки в Linear/Telegram):
+- **Идентичность:** имя агента, аватар/иконка.
+- **Модель:** выбор скруглёнными selectable-карточками (не dropdown), с краткой подписью «быстро/умно».
+- **Поведение:** system prompt (редактируемый), тема диалога.
+- **Память:** «Очистить диалог» (есть `ChatViewModel.onClearDialog()`), позже — управление контекстом.
 
-Do not move API calls directly into Compose.
+## 6. Продуктовые поверхности под визы (roadmap, закладываем дизайн)
 
-## Navigation
+Это то, что отличает продукт от «ещё одного чата» и прямо отвечает миссии (документы + подача):
 
-Relevant files:
-- `app/src/main/java/com/example/adventai/navigation/AppNavHost.kt`
-- `feature/home/src/main/java/com/example/feature/home/presentation/navigation/HomeNavigation.kt`
-- `feature/chat/src/main/java/com/example/feature/chat/presentation/navigation/ChatNavigation.kt`
+- **Документы** (вкладка): чек-лист требуемых документов со статусами `нужен → загружен → проверен`,
+  загрузка фото/скана, заметки агента по каждому пункту. Паттерн — onboarding-чек-лист Revolut/Monzo.
+- **Готовность к подаче** (вкладка): кольцо/полоса прогресса, что собрано / чего не хватает, риски,
+  «следующий шаг», дата-ориентир подачи. Паттерн — дашборд готовности (банки, Госуслуги).
 
-Requirements:
-- home is the start screen;
-- selecting an agent navigates to chat route;
-- chat route receives agent id;
-- back from chat returns to home;
-- global top bar should not be shown on home or chat if custom screen bars are used.
+Чат остаётся «дирижёром»: агент по ходу диалога обновляет чек-лист и прогресс.
+
+## 7. Состояния (обязательно проектируем все)
+
+- **Empty:** приветствие + чипы-подсказки (см. 4.1).
+- **Loading/streaming:** «печатает…», скелетоны для карточек документов.
+- **Error:** мягкая плашка в ленте с понятным текстом и «повторить» (использовать `ChatErrorMessageMapper`).
+- **Offline:** баннер «нет сети», запрос ставится в очередь/повтор.
+
+## 8. Доступность и адаптивность
+
+- Light/dark; контраст AA; динамический размер шрифта; цель тача ≥48dp.
+- Адаптив: телефоны малые/большие через `BoxWithConstraints`; без фиксированных размеров, ломающих
+  мелкие экраны; безопасные зоны (status/navigation/IME) уважать.
+
+## 9. Связь с кодом: что переиспользуем, что меняем
+
+Модули: `feature:home`, `feature:chat`, `core:designsystem`, `app` (навигация).
+
+- **Переиспользуем:** логику агента (`AiAgent`), историю (`ChatHistoryRepository`/Room), `ChatViewModel`
+  (UI-слой переписываем, логику оставляем), `core:designsystem` (расширяем токенами/тёмной темой).
+- **Меняем UI:** `feature/home/.../HomeScreen.kt` (карусель → продуктовый старт/селектор),
+  `feature/chat/.../screen/ChatScreen.kt` (пузыри-группировка, чипы-подсказки, композер с вложением,
+  стриминг, действия по long-press, scroll-to-bottom), bottom sheet настроек, шапка со статусом.
+- **Добавляем:** нижнюю навигацию (3 вкладки) в `app` и заглушки `Документы`/`Готовность`.
+- **Бизнес-логику в Compose не тащим** (правило сохраняется).
+
+## 10. Поэтапный план редизайна (под формат «День N»)
+
+От «видимый эффект за день» к глубине:
+
+1. **Дизайн-язык:** обновить `DESIGN_SYSTEM.md` + тему (`core:designsystem`): нейтральные поверхности,
+   акцент, тёмная тема, шкалы отступов/типографики.
+2. **Чат v2:** пузыри с группировкой, даты-разделители, индикатор «печатает», scroll-to-bottom.
+3. **Композер v2:** pill, авто-рост, кнопка вложения, морфинг отправки, «стоп» во время генерации.
+4. **Стартовое состояние:** приветствие + чипы-подсказки.
+5. **Богатые сообщения:** карточка чек-листа документов вместо сырого markdown.
+6. **Навигация:** нижние вкладки + заглушки `Документы` / `Готовность`.
+7. **Документы / Готовность:** наполнение продуктовых поверхностей.
+
+## 11. Чек-лист «готово» для каждого экрана
+
+- [ ] Работает на малом и большом экране, не перекрывает системные бары.
+- [ ] Light и dark выглядят одинаково целостно.
+- [ ] Нет hardcoded-цветов; всё из темы.
+- [ ] Текст не вылезает; длинные строки переносятся/обрезаются осмысленно.
+- [ ] Клавиатура не «дёргает» весь экран.
+- [ ] Есть состояния empty/loading/error.
+- [ ] Сборка: `.\gradlew.bat :app:compileDebugKotlin --console=plain`.

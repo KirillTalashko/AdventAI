@@ -101,6 +101,6 @@ AdventAI - Android-приложение на Jetpack Compose для работы
 - `.claude/REFERENCE_SCREENSHOTS.md` - описание референсов.
 - `.claude/DO_NOT_CHANGE.md` - что нельзя менять.
 - `.claude/AI_ADVENT_CHALLENGE_GUIDE.md` - полезная информация по формату AI Advent Challenge и работе с AI-инструментами.
-- `.claude/AI_AGENT_TOOLS_AND_LLM_NOTES.md` - подробные заметки про LLM, контекст, память, инструменты и устройство агентов.
+- `.claude/AI_AGENT_TOOLS_AND_LLM_NOTES.md` - практический гайд: концепты LLM/агентов применительно к коду AdventAI (что есть сейчас и что улучшить).
 
 Не хранить API-ключи и секреты в этих файлах.
