@@ -66,4 +66,4 @@ ChatScreen → ChatViewModel.sendMessage()
 - `DESIGN_SYSTEM.md` — дизайн-система (палитра, формы, типографика, motion).
 - `SCREEN_REQUIREMENTS.md` — требования к экранам Home/Chat и слою агента.
 - `AI_ADVENT_CHALLENGE_GUIDE.md` — формат и правила AI Advent Challenge #8.
-- `AI_AGENT_TOOLS_AND_LLM_NOTES.md` — конспект про LLM, контекст, память, планирование, инструменты.
+- `AI_AGENT_TOOLS_AND_LLM_NOTES.md` — практический гайд: концепты LLM/агентов (контекст, память, токены, инструменты) применительно к коду AdventAI + приоритетный план улучшений.

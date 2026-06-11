@@ -3,6 +3,7 @@ package com.example.core.testing
 import com.example.core.common.AppError
 import com.example.core.common.AppResult
 import com.example.core.domain.repository.AiChatRepository
+import com.example.core.model.ai.ChatMessage
 import com.example.core.model.ai.ChatRequestOptions
 import com.example.core.model.ai.LlmAnswer
 
@@ -46,6 +47,23 @@ class FakeAiChatRepository : AiChatRepository {
         options: ChatRequestOptions
     ): AppResult<LlmAnswer> {
         receivedMessages += message
+        return result
+    }
+
+    override suspend fun sendConversation(
+        messages: List<ChatMessage>,
+        options: ChatRequestOptions
+    ): AppResult<LlmAnswer> {
+        messages.lastOrNull()?.let { receivedMessages += it.content }
+        return result
+    }
+
+    override suspend fun sendOpenRouterConversation(
+        messages: List<ChatMessage>,
+        modelId: String,
+        options: ChatRequestOptions
+    ): AppResult<LlmAnswer> {
+        messages.lastOrNull()?.let { receivedMessages += it.content }
         return result
     }
 }

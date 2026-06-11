@@ -1,102 +1,73 @@
-# AdventAI Design System
+# AdventAI Design System (Redesign 2026)
 
-## Visual Direction
+Дизайн-язык спокойного, надёжного, премиального ассистента для высокоставочной задачи (виза).
+Источник истины для цвета и типографики — `MaterialTheme`; расширенные токены — в `core:designsystem/theme`.
 
-AdventAI uses a clean 2026 product style: blue and white, soft surfaces, rounded geometry, readable typography, and calm motion.
+## Визуальное направление
 
-The UI should feel like a polished AI product, not a demo or learning screen.
+Content-first, спокойные поверхности: нейтральная база + **один** уверенный синий акцент, воздух,
+сдержанная анимация. Фирменный сине-белый эволюционирует (акцент остаётся узнаваемо синим), но фон
+больше не голубой — он нейтральный. UI должен ощущаться как продакшн-продукт, а не учебный экран.
 
-## Palette
+## Палитра (токены в `theme/Color.kt`, схемы в `theme/Theme.kt`)
 
-Use `MaterialTheme.colorScheme` as the source of truth.
+Берём цвета только из `MaterialTheme.colorScheme` (+ `AdventTheme.status` для статусов). Hardcoded-цвета
+в экранах запрещены.
 
-Current direction:
-- primary: saturated blue;
-- secondary: lighter product blue;
-- tertiary: sky blue;
-- background: very light blue-white;
-- surface: white;
-- surfaceContainer: pale blue;
-- outlineVariant: soft blue-gray.
+- **Light:** `background` нейтральный off-white (`#F6F7F9`), `surface` белый, `surfaceContainer*` —
+  нейтральные серо-голубые ступени, `primary` — продуктовый синий (`#2F6BED`).
+- **Dark — обязателен и самостоятелен** (не инверсия): нейтральный графит (`background #0F1218`,
+  `surface #151922`, ступени `surfaceContainer*`), акцент мягче (`primary #9DBBFF`).
+- **Поверхности:** `background → surface → surfaceContainer → surfaceContainerHigh → …Highest`.
+  Разделять тенью **или** заливкой, не обоими сразу.
+- **Статусы** (`AdventTheme.status`, приглушённые, только для документов/готовности):
+  `neutral` (нужен) · `info` (загружен) · `success` (проверен) · `warning` (не хватает). Контент
+  рисуется «сильным» цветом поверх его `*Container`.
+- Запрещено: случайные зелёный/жёлтый/розовый/фиолетовый/оранжевый акценты вне токенов статусов;
+  градиенты, вводящие новый визуальный язык.
 
-Avoid:
-- random green, yellow, pink, purple, brown, orange accents;
-- hardcoded colors in feature screens;
-- gradients that introduce a new visual language.
+## Отступы и формы (`theme/Spacing.kt`)
 
-If a hardcoded color is needed for a decorative effect, keep it in the blue-white range and explain why.
+- **Шкала отступов** `AppSpacing`: `xs 4 · sm 8 · md 12 · lg 16 · xl 24 · xxl 32`. Не плодить «магические» dp.
+- **Радиусы** `AppRadii`: пузырь `20`, карточка `24`, крупная карточка / bottom sheet `28`, поле/композер `24` (pill).
+- Иконичные кнопки — `CircleShape`. Цветные панели внутри карточек обязательно `clip(shape)`.
+- Пузыри чата: `20dp`, «сглаженный угол» (`6dp`) только у крайнего сообщения группы со стороны автора.
 
-## Shape
+## Типографика (`theme/Type.kt`)
 
-Use rounded, modern geometry.
+Один шрифт (системный), шкала Display/Title/Body/Label. Заголовки короткие и плотные
+(`headline*` — Bold/SemiBold), тело — читаемое с увеличенным line-height. Длинные строки —
+`maxLines` + `TextOverflow.Ellipsis`.
 
-Rules:
-- main cards: `RoundedCornerShape(30.dp)` or higher;
-- inner colored visual blocks: rounded on all corners, never only top corners unless explicitly required;
-- icon buttons: `CircleShape`;
-- bottom sheets: rounded top corners, usually `34.dp`;
-- text fields: `RoundedCornerShape(20.dp)` or higher.
+## Иконки
 
-Every colored panel inside a card must be clipped with the same or compatible rounded shape.
-
-## Typography
-
-Use Material typography.
-
-Rules:
-- screen headings should be short;
-- compact panels should not use oversized hero typography;
-- long titles must use `maxLines` and `TextOverflow.Ellipsis`;
-- body text should stay readable and not overflow containers.
-
-## Icons
-
-Prefer standard Material-style vector drawables for common actions:
-- back;
-- close;
-- settings;
-- send;
-- add.
-
-Do not create custom Canvas icons for standard actions unless there is a specific design reason.
+Material-style vector drawables для стандартных действий (back, close, settings, send, add, forum,
+delete; иконки вкладок `ic_tab_*`). Простые глифы (send/chevron/plus/typing) допустимо рисовать
+`Canvas`, когда это дешевле и аккуратнее, чем drawable.
 
 ## Motion
 
-Motion should be smooth and subtle.
+Плавно и сдержанно: `spring` (medium bounce) либо `tween` 180–260ms; появление сообщений — лёгкий
+fade/slide; «печатает…» — анимированные точки. Без резких прыжков и сдвигов от текста/клавиатуры.
+Карусель-аттракцион убран: главный экран — спокойный список агентов.
 
-Carousel:
-- use `LazyRow`;
-- use `rememberSnapFlingBehavior`;
-- calculate item focus from `LazyListState.layoutInfo`;
-- animate scale, alpha, lift, and slight rotation with spring animations;
-- center item should feel focused, side items should be smaller and calmer.
+## Safe areas и клавиатура
 
-Avoid:
-- abrupt jumps;
-- layout shifts caused by text or keyboard;
-- animations that make the UI feel playful when the screen is operational.
+- Кастомные топ-бары/шапки — `statusBarsPadding()`; не рисовать под часами/вырезом камеры.
+- Нижний бар навигации сам учитывает navigation bar; экраны вкладок добавляют `statusBarsPadding()`
+  для своих шапок (Scaffold отдаёт нулевые системные инсеты — `contentWindowInsets = WindowInsets(0)`).
+- Композер: `navigationBarsPadding()` + `imePadding()` **только на нём**; лента — `imeNestedScroll()`.
 
-## Safe Areas
+## Навигация
 
-All top bars must respect system UI:
-- use `statusBarsPadding()` for custom top bars;
-- do not draw back buttons under system time or camera cutouts.
+Нижняя навигация из 3 вкладок: **Чат** (старт, Home → диалог с агентом) · **Документы** · **Готовность**.
+Внутри диалога с агентом бар скрыт (экран на всю высоту, свой композер снизу). Старые «дни заданий»
+в навигацию не возвращать.
 
-Bottom input areas:
-- use `navigationBarsPadding()`;
-- apply `imePadding()` to the bottom composer only, not to the entire screen, unless the whole layout is intentionally designed for it.
+## Compose-правила
 
-## Compose UI Rules
-
-Use:
-- `MaterialTheme.colorScheme`;
-- `BoxWithConstraints` for responsive sizing;
-- `maxLines` and `TextOverflow.Ellipsis`;
-- `clip(shape)` before drawing colored rounded blocks;
-- adaptive dimensions based on screen width/height.
-
-Avoid:
-- fixed dimensions that break on small screens;
-- nested cards inside cards;
-- visible labels explaining how to use basic UI;
-- default rectangular Material components when the rest of the screen uses custom rounded product surfaces.
+Использовать: `MaterialTheme.colorScheme` + `AdventTheme.status`; `AppSpacing`/`AppRadii`;
+`BoxWithConstraints`/адаптив по ширине; `maxLines` + `Ellipsis`; `clip(shape)` перед заливкой.
+Избегать: фиксированных размеров, ломающих мелкие экраны; вложенных карточек в карточках;
+видимых подписей-инструкций к базовому UI; стандартных прямоугольных компонентов там, где остальной
+экран — кастомные скруглённые поверхности.

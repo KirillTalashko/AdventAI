@@ -10,6 +10,7 @@ import com.example.core.data.ai.mapper.toLlmAnswerOrError
 import com.example.core.data.ai.mapper.toOpenRouterChatRequestDto
 import com.example.core.data.ai.mapper.toUserChatMessage
 import com.example.core.domain.repository.AiChatRepository
+import com.example.core.model.ai.ChatMessage
 import com.example.core.model.ai.ChatRequestOptions
 import com.example.core.model.ai.LlmAnswer
 import com.example.core.network.api.DeepSeekApi
@@ -40,44 +41,43 @@ class AiChatRepositoryImpl @Inject constructor(
     override suspend fun sendDetailedMessage(
         message: String,
         options: ChatRequestOptions
-    ): AppResult<LlmAnswer> = withContext(dispatchers.io) {
-        try {
-            val request = message.toUserChatMessage().toChatRequestDto(options)
-
-            when (val answer = deepSeekApi.sendMessage(request).toLlmAnswerOrError()) {
-                is Either.Left -> AppResult.Error(answer.value)
-                is Either.Right -> AppResult.Success(answer.value)
-            }
-        } catch (exception: UnknownHostException) {
-            AppResult.Error(AppError.UnknownHost)
-        } catch (exception: SocketTimeoutException) {
-            AppResult.Error(AppError.Timeout)
-        } catch (exception: ConnectException) {
-            AppResult.Error(AppError.Connection)
-        } catch (exception: SSLException) {
-            AppResult.Error(AppError.SecureConnection(exception.safeMessage()))
-        } catch (exception: IOException) {
-            AppResult.Error(AppError.NetworkDetails(exception.safeMessage()))
-        } catch (exception: HttpException) {
-            AppResult.Error(exception.toAppError())
-        } catch (exception: Exception) {
-            AppResult.Error(AppError.Unknown(exception.message))
-        }
+    ): AppResult<LlmAnswer> = runNetworkCall {
+        val request = message.toUserChatMessage().toChatRequestDto(options)
+        deepSeekApi.sendMessage(request).toLlmAnswerOrError()
     }
 
     override suspend fun sendOpenRouterDetailedMessage(
         message: String,
         modelId: String,
         options: ChatRequestOptions
+    ): AppResult<LlmAnswer> = runNetworkCall {
+        val request = message.toUserChatMessage()
+            .toOpenRouterChatRequestDto(modelId = modelId, options = options)
+        openRouterApi.sendMessage(request).toLlmAnswerOrError()
+    }
+
+    override suspend fun sendConversation(
+        messages: List<ChatMessage>,
+        options: ChatRequestOptions
+    ): AppResult<LlmAnswer> = runNetworkCall {
+        val request = messages.toChatRequestDto(options)
+        deepSeekApi.sendMessage(request).toLlmAnswerOrError()
+    }
+
+    override suspend fun sendOpenRouterConversation(
+        messages: List<ChatMessage>,
+        modelId: String,
+        options: ChatRequestOptions
+    ): AppResult<LlmAnswer> = runNetworkCall {
+        val request = messages.toOpenRouterChatRequestDto(modelId = modelId, options = options)
+        openRouterApi.sendMessage(request).toLlmAnswerOrError()
+    }
+
+    private suspend fun runNetworkCall(
+        block: suspend () -> Either<AppError, LlmAnswer>
     ): AppResult<LlmAnswer> = withContext(dispatchers.io) {
         try {
-            val request = message.toUserChatMessage()
-                .toOpenRouterChatRequestDto(
-                    modelId = modelId,
-                    options = options
-                )
-
-            when (val answer = openRouterApi.sendMessage(request).toLlmAnswerOrError()) {
+            when (val answer = block()) {
                 is Either.Left -> AppResult.Error(answer.value)
                 is Either.Right -> AppResult.Success(answer.value)
             }
