@@ -64,6 +64,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -158,7 +159,9 @@ fun ChatScreen(
 
     val messages = state.messages
     val isEmptyConversation = messages.none { it.author == AgentMessageAuthor.User }
-    val chatItems = remember(messages) { buildChatItems(messages) }
+    val chatItems = remember(messages, state.windowStartIndex) {
+        buildChatItems(messages, state.windowStartIndex)
+    }
     val scrollAnchor = chatItems.size + (if (state.isLoading) 1 else 0)
 
     LaunchedEffect(scrollAnchor) {
@@ -232,7 +235,9 @@ fun ChatScreen(
             ContextMeter(
                 used = state.contextTokens,
                 limit = state.contextLimit,
-                autoTrim = state.config.autoTrimHistory
+                autoTrim = state.config.autoTrimHistory,
+                messagesInWindow = state.messages.size - state.windowStartIndex,
+                messagesTotal = state.messages.size
             )
 
             MessageComposer(
@@ -418,10 +423,12 @@ private fun MessageList(
         itemsIndexed(chatItems) { _, item ->
             when (item) {
                 is ChatListItem.DateHeader -> DateSeparator(label = item.label)
+                ChatListItem.WindowDivider -> WindowDivider()
                 is ChatListItem.Bubble -> MessageBubble(
                     message = item.message,
                     isLastInGroup = item.isLastInGroup,
-                    topSpacing = if (item.isFirstInGroup) AppSpacing.sm else 0.dp
+                    topSpacing = if (item.isFirstInGroup) AppSpacing.sm else 0.dp,
+                    outOfWindow = item.outOfWindow
                 )
             }
         }
@@ -461,11 +468,42 @@ private fun DateSeparator(
 }
 
 @Composable
+private fun WindowDivider(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = AppSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+    ) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(1.dp)
+                .background(MaterialTheme.colorScheme.error.copy(alpha = 0.35f))
+        )
+        Text(
+            text = stringResource(R.string.window_divider_label),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.error,
+            maxLines = 1
+        )
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(1.dp)
+                .background(MaterialTheme.colorScheme.error.copy(alpha = 0.35f))
+        )
+    }
+}
+
+@Composable
 private fun MessageBubble(
     message: AgentChatMessage,
     isLastInGroup: Boolean,
     topSpacing: androidx.compose.ui.unit.Dp,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    outOfWindow: Boolean = false
 ) {
     val isUser = message.author == AgentMessageAuthor.User
     val bubbleColor = if (isUser) {
@@ -493,8 +531,18 @@ private fun MessageBubble(
             .padding(top = topSpacing),
         horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
     ) {
+        if (outOfWindow) {
+            Text(
+                text = stringResource(R.string.message_out_of_window),
+                modifier = Modifier.padding(start = 6.dp, end = 6.dp, bottom = 2.dp),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
         Surface(
-            modifier = Modifier.widthIn(max = 340.dp),
+            modifier = Modifier
+                .widthIn(max = 340.dp)
+                .alpha(if (outOfWindow) 0.4f else 1f),
             shape = shape,
             color = bubbleColor
         ) {
@@ -580,6 +628,8 @@ private fun ContextMeter(
     used: Int,
     limit: Int,
     autoTrim: Boolean,
+    messagesInWindow: Int,
+    messagesTotal: Int,
     modifier: Modifier = Modifier
 ) {
     if (limit <= 0) return
@@ -642,6 +692,22 @@ private fun ContextMeter(
                     .fillMaxHeight()
                     .clip(CircleShape)
                     .background(barColor)
+            )
+        }
+        if (autoTrim && messagesTotal > 0) {
+            Text(
+                text = stringResource(
+                    R.string.context_meter_messages,
+                    messagesInWindow,
+                    messagesTotal
+                ),
+                style = MaterialTheme.typography.labelSmall,
+                color = if (messagesInWindow < messagesTotal) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                maxLines = 1
             )
         }
     }
@@ -1675,17 +1741,26 @@ private fun AgentProvider.label(): String = when (this) {
 
 sealed interface ChatListItem {
     data class DateHeader(val label: String) : ChatListItem
+    data object WindowDivider : ChatListItem
     data class Bubble(
         val message: AgentChatMessage,
         val isFirstInGroup: Boolean,
-        val isLastInGroup: Boolean
+        val isLastInGroup: Boolean,
+        val outOfWindow: Boolean = false
     ) : ChatListItem
 }
 
-private fun buildChatItems(messages: List<AgentChatMessage>): List<ChatListItem> {
+private fun buildChatItems(
+    messages: List<AgentChatMessage>,
+    windowStartIndex: Int
+): List<ChatListItem> {
     val items = mutableListOf<ChatListItem>()
     var lastDayKey: Long? = null
     messages.forEachIndexed { index, message ->
+        // Граница окна: всё, что выше windowStartIndex, уже не уходит в модель.
+        if (windowStartIndex in 1..messages.lastIndex && index == windowStartIndex) {
+            items += ChatListItem.WindowDivider
+        }
         val dayKey = dayKey(message.createdAt)
         if (dayKey != null && dayKey != lastDayKey) {
             items += ChatListItem.DateHeader(dayLabel(message.createdAt))
@@ -1702,7 +1777,8 @@ private fun buildChatItems(messages: List<AgentChatMessage>): List<ChatListItem>
         items += ChatListItem.Bubble(
             message = message,
             isFirstInGroup = isFirst,
-            isLastInGroup = isLast
+            isLastInGroup = isLast,
+            outOfWindow = index < windowStartIndex
         )
     }
     return items

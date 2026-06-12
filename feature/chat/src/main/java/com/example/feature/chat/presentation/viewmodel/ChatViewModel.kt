@@ -200,7 +200,8 @@ class ChatViewModel @Inject constructor(
     private fun AgentChatUiState.withContextEstimate(): AgentChatUiState =
         copy(
             contextTokens = agent.estimateContextTokens(config, messages, message),
-            contextLimit = config.effectiveContextLimit()
+            contextLimit = config.effectiveContextLimit(),
+            windowStartIndex = agent.windowStartIndex(config, messages, message)
         )
 
     private suspend fun createConversationWithGreeting(): Long {
@@ -259,5 +260,7 @@ data class AgentChatUiState(
     /** Локальная оценка токенов контекста (system prompt + история + черновик). */
     val contextTokens: Int = 0,
     /** Эффективный лимит контекстного окна (демо-лимит или лимит модели). */
-    val contextLimit: Int = 0
+    val contextLimit: Int = 0,
+    /** Индекс первого сообщения в окне: всё, что раньше — «выехало» (при авто-обрезке). */
+    val windowStartIndex: Int = 0
 )

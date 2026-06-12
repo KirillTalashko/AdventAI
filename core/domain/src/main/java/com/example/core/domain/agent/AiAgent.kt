@@ -94,6 +94,29 @@ class AiAgent @Inject constructor(
     }
 
     /**
+     * Сколько самых старых сообщений уже «выехало» из окна — для подсветки в ленте.
+     * Возвращает индекс первого сообщения, которое ещё попадёт в запрос (с учётом
+     * текущего черновика). `0` — все сообщения помещаются. Считается только когда
+     * включена авто-обрезка (иначе обрезки нет, переполнение даёт ошибку).
+     */
+    fun windowStartIndex(
+        config: AgentConfig,
+        conversation: List<AgentChatMessage>,
+        draft: String = ""
+    ): Int {
+        if (!config.autoTrimHistory || conversation.isEmpty()) return 0
+        val systemPrompt = systemPromptOf(config)
+        val limit = config.effectiveContextLimit()
+        val effective = if (draft.isNotBlank()) {
+            conversation + AgentChatMessage(author = AgentMessageAuthor.User, text = draft)
+        } else {
+            conversation
+        }
+        val start = windowStart(systemPrompt, effective, limit) ?: return conversation.size
+        return start.coerceAtMost(conversation.size)
+    }
+
+    /**
      * Подгоняет историю под лимит окна. Возвращает список сообщений для отправки или
      * `null`, если запрос не помещается (и авто-обрезка не помогла / выключена).
      */
@@ -103,27 +126,41 @@ class AiAgent @Inject constructor(
         limit: Int,
         autoTrim: Boolean
     ): List<AgentChatMessage>? {
-        val fullEstimate = TokenEstimator.estimateConversation(
-            systemPrompt = systemPrompt,
-            messageTexts = conversation.map { it.text }
-        )
-        if (fullEstimate <= limit) return conversation
-        if (!autoTrim) return null
+        val start = windowStart(systemPrompt, conversation, limit)
+        return when {
+            start == 0 -> conversation        // всё помещается
+            !autoTrim -> null                 // переполнение без авто-обрезки → ошибка
+            start == null -> null             // не лезет даже одно последнее сообщение
+            else -> conversation.subList(start, conversation.size)
+        }
+    }
 
-        // Sliding window: всегда сохраняем последнее (текущее) сообщение пользователя,
-        // отбрасываем самые старые, пока не уложимся в лимит.
+    /**
+     * Индекс первого сообщения, которое помещается в окно при sliding window.
+     * `0` — всё помещается; `null` — не помещается даже одно последнее сообщение.
+     * Всегда сохраняет последнее сообщение, отбрасывая самые старые.
+     */
+    private fun windowStart(
+        systemPrompt: String,
+        conversation: List<AgentChatMessage>,
+        limit: Int
+    ): Int? {
+        if (conversation.isEmpty()) return 0
+        val full = TokenEstimator.estimateConversation(systemPrompt, conversation.map { it.text })
+        if (full <= limit) return 0
+
         val last = conversation.last()
-        val minimalEstimate = TokenEstimator.estimateConversation(systemPrompt, listOf(last.text))
-        if (minimalEstimate > limit) return null
+        if (TokenEstimator.estimateConversation(systemPrompt, listOf(last.text)) > limit) return null
 
         var start = 0
         while (start < conversation.lastIndex) {
             val window = conversation.subList(start, conversation.size)
-            val estimate = TokenEstimator.estimateConversation(systemPrompt, window.map { it.text })
-            if (estimate <= limit) return window
+            if (TokenEstimator.estimateConversation(systemPrompt, window.map { it.text }) <= limit) {
+                return start
+            }
             start++
         }
-        return listOf(last)
+        return conversation.lastIndex
     }
 
     private fun AgentChatMessage.toChatMessage(): ChatMessage =

@@ -124,6 +124,9 @@
     <string name="context_meter_overflow_trim">Переполнение — старые сообщения будут обрезаны</string>
     <string name="context_meter_overflow_block">Переполнение — запрос не уйдёт (включите авто-обрезку)</string>
     <string name="context_meter_warning">Окно почти заполнено</string>
+    <string name="context_meter_messages">в окне %1$d из %2$d сообщений</string>
+    <string name="message_out_of_window">вне контекста</string>
+    <string name="window_divider_label">↑ модель это уже не видит</string>
     <string name="settings_section_context">Контекст и токены</string>
     <string name="settings_context_limit_label">Лимит окна (демо)</string>
     <string name="settings_context_limit_real">Реальный</string>
