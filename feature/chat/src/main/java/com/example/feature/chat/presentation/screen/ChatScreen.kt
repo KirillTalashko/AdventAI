@@ -50,6 +50,8 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -68,6 +70,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -114,7 +117,9 @@ fun ChatRoute(
         onAgentNameChanged = viewModel::onAgentNameChanged,
         onModelSelected = viewModel::onModelSelected,
         onSystemPromptChanged = viewModel::onSystemPromptChanged,
-        onDialogThemeChanged = viewModel::onDialogThemeChanged
+        onDialogThemeChanged = viewModel::onDialogThemeChanged,
+        onDemoContextLimitSelected = viewModel::onDemoContextLimitSelected,
+        onAutoTrimChanged = viewModel::onAutoTrimChanged
     )
 }
 
@@ -140,6 +145,8 @@ fun ChatScreen(
     onModelSelected: (AgentLlmModel) -> Unit,
     onSystemPromptChanged: (String) -> Unit,
     onDialogThemeChanged: (String) -> Unit,
+    onDemoContextLimitSelected: (Int?) -> Unit,
+    onAutoTrimChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showSettings by remember { mutableStateOf(false) }
@@ -222,6 +229,12 @@ fun ChatScreen(
                 )
             }
 
+            ContextMeter(
+                used = state.contextTokens,
+                limit = state.contextLimit,
+                autoTrim = state.config.autoTrimHistory
+            )
+
             MessageComposer(
                 value = state.message,
                 isLoading = state.isLoading,
@@ -248,6 +261,8 @@ fun ChatScreen(
                     onModelSelected = onModelSelected,
                     onSystemPromptChanged = onSystemPromptChanged,
                     onDialogThemeChanged = onDialogThemeChanged,
+                    onDemoContextLimitSelected = onDemoContextLimitSelected,
+                    onAutoTrimChanged = onAutoTrimChanged,
                     onClose = { showSettings = false }
                 )
             }
@@ -511,6 +526,9 @@ private fun MessageBubble(
                 }
             }
         }
+        if (!isUser) {
+            message.usage?.let { usage -> MessageTokenInfo(usage = usage) }
+        }
         if (isLastInGroup) {
             val time = formatTime(message.createdAt)
             if (time.isNotEmpty()) {
@@ -524,6 +542,113 @@ private fun MessageBubble(
         }
     }
 }
+
+@Composable
+private fun MessageTokenInfo(
+    usage: com.example.core.model.ai.TokenUsage,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.padding(top = 3.dp, start = 6.dp, end = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(1.dp)
+    ) {
+        Text(
+            text = stringResource(
+                R.string.tokens_message_usage,
+                usage.promptTokens,
+                usage.completionTokens,
+                usage.totalTokens
+            ),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        if (usage.promptCacheHitTokens > 0) {
+            Text(
+                text = stringResource(R.string.tokens_message_cache, usage.promptCacheHitTokens),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
+private fun ContextMeter(
+    used: Int,
+    limit: Int,
+    autoTrim: Boolean,
+    modifier: Modifier = Modifier
+) {
+    if (limit <= 0) return
+    val fraction = (used.toFloat() / limit.toFloat()).coerceIn(0f, 1f)
+    val overflow = used > limit
+    val warning = !overflow && fraction >= 0.8f
+    val barColor = when {
+        overflow -> MaterialTheme.colorScheme.error
+        warning -> AdventTheme.status.warning
+        else -> MaterialTheme.colorScheme.primary
+    }
+    val statusText = when {
+        overflow && autoTrim -> stringResource(R.string.context_meter_overflow_trim)
+        overflow -> stringResource(R.string.context_meter_overflow_block)
+        warning -> stringResource(R.string.context_meter_warning)
+        else -> null
+    }
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = AppSpacing.lg, vertical = AppSpacing.xs),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(
+                    R.string.context_meter_label,
+                    formatTokens(used),
+                    formatTokens(limit)
+                ),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
+            )
+            statusText?.let {
+                Text(
+                    text = it,
+                    modifier = Modifier.padding(start = AppSpacing.sm),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = barColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(fraction)
+                    .fillMaxHeight()
+                    .clip(CircleShape)
+                    .background(barColor)
+            )
+        }
+    }
+}
+
+private fun formatTokens(value: Int): String =
+    String.format(Locale.getDefault(), "%,d", value)
 
 @Composable
 private fun TypingBubble(modifier: Modifier = Modifier) {
@@ -1064,6 +1189,8 @@ private fun AgentSettingsSheet(
     onModelSelected: (AgentLlmModel) -> Unit,
     onSystemPromptChanged: (String) -> Unit,
     onDialogThemeChanged: (String) -> Unit,
+    onDemoContextLimitSelected: (Int?) -> Unit,
+    onAutoTrimChanged: (Boolean) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -1110,6 +1237,17 @@ private fun AgentSettingsSheet(
                 onValueChange = onSystemPromptChanged,
                 label = "Системный промпт",
                 minLines = 6
+            )
+        }
+
+        SettingsSection(title = stringResource(R.string.settings_section_context)) {
+            ContextLimitChips(
+                selected = state.config.demoContextLimitTokens,
+                onSelect = onDemoContextLimitSelected
+            )
+            AutoTrimRow(
+                checked = state.config.autoTrimHistory,
+                onCheckedChange = onAutoTrimChanged
             )
         }
 
@@ -1196,6 +1334,122 @@ private fun SoftTextField(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                 cursorColor = MaterialTheme.colorScheme.primary
+            )
+        )
+    }
+}
+
+private val ContextLimitPresets: List<Int?> = listOf(null, 4000, 2000, 1000, 500)
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ContextLimitChips(
+    selected: Int?,
+    onSelect: (Int?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+    ) {
+        Text(
+            text = stringResource(R.string.settings_context_limit_label),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            ContextLimitPresets.forEach { preset ->
+                SelectableChip(
+                    text = preset?.let { formatTokens(it) }
+                        ?: stringResource(R.string.settings_context_limit_real),
+                    selected = preset == selected,
+                    onClick = { onSelect(preset) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectableChip(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.clip(CircleShape).clickable(onClick = onClick),
+        shape = CircleShape,
+        color = if (selected) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        },
+        border = if (selected) {
+            null
+        } else {
+            androidx.compose.foundation.BorderStroke(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant
+            )
+        }
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = AppSpacing.lg, vertical = AppSpacing.sm),
+            style = MaterialTheme.typography.labelLarge,
+            color = if (selected) {
+                MaterialTheme.colorScheme.onPrimary
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun AutoTrimRow(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.md),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.settings_auto_trim_label),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = stringResource(R.string.settings_auto_trim_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                checkedTrackColor = MaterialTheme.colorScheme.primary
             )
         )
     }
@@ -1529,7 +1783,9 @@ private fun ChatScreenPreview() {
             onAgentNameChanged = {},
             onModelSelected = {},
             onSystemPromptChanged = {},
-            onDialogThemeChanged = {}
+            onDialogThemeChanged = {},
+            onDemoContextLimitSelected = {},
+            onAutoTrimChanged = {}
         )
     }
 }

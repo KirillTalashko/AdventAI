@@ -28,5 +28,17 @@ data class ChatMessageEntity(
     @ColumnInfo(name = "text")
     val text: String,
     @ColumnInfo(name = "created_at")
-    val createdAt: Long
+    val createdAt: Long,
+    // Токены ответа модели (только у сообщений агента; null у пользователя/приветствий).
+    @ColumnInfo(name = "prompt_tokens")
+    val promptTokens: Int? = null,
+    @ColumnInfo(name = "completion_tokens")
+    val completionTokens: Int? = null,
+    @ColumnInfo(name = "total_tokens")
+    val totalTokens: Int? = null,
+    @ColumnInfo(name = "cache_hit_tokens")
+    val cacheHitTokens: Int? = null,
+    // Какой моделью получен ответ — для подсчёта стоимости в статистике.
+    @ColumnInfo(name = "model_api_id")
+    val modelApiId: String? = null
 )

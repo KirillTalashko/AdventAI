@@ -11,6 +11,7 @@ import com.example.core.model.ai.AgentConfig
 import com.example.core.model.ai.AgentLlmModel
 import com.example.core.model.ai.AgentMessageAuthor
 import com.example.core.model.ai.Conversation
+import com.example.core.model.ai.effectiveContextLimit
 import com.example.feature.chat.presentation.mapper.ChatErrorMessageMapper
 import com.example.feature.chat.presentation.navigation.ChatDestination
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -43,7 +44,7 @@ class ChatViewModel @Inject constructor(
     private var sendJob: Job? = null
 
     private val _uiState = MutableStateFlow(
-        AgentChatUiState(config = defaultConfig(agentId))
+        AgentChatUiState(config = defaultConfig(agentId)).withContextEstimate()
     )
     val uiState: StateFlow<AgentChatUiState> = _uiState.asStateFlow()
 
@@ -64,7 +65,7 @@ class ChatViewModel @Inject constructor(
             activeConversationId.filterNotNull().collectLatest { conversationId ->
                 _uiState.update { state -> state.copy(activeConversationId = conversationId) }
                 chatHistoryRepository.observeMessages(conversationId).collect { messages ->
-                    _uiState.update { state -> state.copy(messages = messages) }
+                    _uiState.update { state -> state.copy(messages = messages).withContextEstimate() }
                 }
             }
         }
@@ -72,7 +73,7 @@ class ChatViewModel @Inject constructor(
 
     fun onMessageChanged(message: String) {
         _uiState.update { state ->
-            state.copy(message = message)
+            state.copy(message = message).withContextEstimate()
         }
     }
 
@@ -116,7 +117,9 @@ class ChatViewModel @Inject constructor(
                         message = AgentChatMessage(
                             author = AgentMessageAuthor.Agent,
                             text = answer.content,
-                            createdAt = System.currentTimeMillis()
+                            createdAt = System.currentTimeMillis(),
+                            usage = answer.usage,
+                            modelApiId = config.model.apiId
                         )
                     )
                     chatHistoryRepository.touchConversation(conversationId)
@@ -169,6 +172,16 @@ class ChatViewModel @Inject constructor(
         updateConfig { copy(model = model) }
     }
 
+    /** Демо-лимит контекстного окна; `null` — реальный лимит модели. */
+    fun onDemoContextLimitSelected(limitTokens: Int?) {
+        updateConfig { copy(demoContextLimitTokens = limitTokens) }
+    }
+
+    /** Авто-обрезка истории (sliding window) при переполнении окна. */
+    fun onAutoTrimChanged(enabled: Boolean) {
+        updateConfig { copy(autoTrimHistory = enabled) }
+    }
+
     fun onSystemPromptChanged(value: String) {
         updateConfig { copy(systemPrompt = value) }
     }
@@ -179,9 +192,16 @@ class ChatViewModel @Inject constructor(
 
     private fun updateConfig(update: AgentConfig.() -> AgentConfig) {
         _uiState.update { state ->
-            state.copy(config = state.config.update())
+            state.copy(config = state.config.update()).withContextEstimate()
         }
     }
+
+    /** Пересчитывает оценку токенов контекста и лимит окна по текущему состоянию. */
+    private fun AgentChatUiState.withContextEstimate(): AgentChatUiState =
+        copy(
+            contextTokens = agent.estimateContextTokens(config, messages, message),
+            contextLimit = config.effectiveContextLimit()
+        )
 
     private suspend fun createConversationWithGreeting(): Long {
         val id = chatHistoryRepository.createConversation(agentId, DEFAULT_CONVERSATION_TITLE)
@@ -235,5 +255,9 @@ data class AgentChatUiState(
     val activeConversationId: Long? = null,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val availableModels: List<AgentLlmModel> = AgentLlmModel.entries
+    val availableModels: List<AgentLlmModel> = AgentLlmModel.entries,
+    /** Локальная оценка токенов контекста (system prompt + история + черновик). */
+    val contextTokens: Int = 0,
+    /** Эффективный лимит контекстного окна (демо-лимит или лимит модели). */
+    val contextLimit: Int = 0
 )

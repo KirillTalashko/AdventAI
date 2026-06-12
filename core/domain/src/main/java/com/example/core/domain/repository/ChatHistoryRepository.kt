@@ -2,6 +2,7 @@ package com.example.core.domain.repository
 
 import com.example.core.model.ai.AgentChatMessage
 import com.example.core.model.ai.Conversation
+import com.example.core.model.ai.ConversationTokenStat
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -34,4 +35,7 @@ interface ChatHistoryRepository {
 
     /** Добавить сообщение в диалог. */
     suspend fun appendMessage(conversationId: Long, message: AgentChatMessage)
+
+    /** Сводка по токенам всех диалогов (для экрана «Статистика»), свежие сверху. */
+    fun observeTokenStats(): Flow<List<ConversationTokenStat>>
 }

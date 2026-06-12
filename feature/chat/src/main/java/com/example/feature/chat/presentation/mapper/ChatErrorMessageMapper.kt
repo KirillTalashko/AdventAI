@@ -15,6 +15,7 @@ class ChatErrorMessageMapper @Inject constructor(
         AppError.EmptyPrompt -> emptyMessage()
         AppError.EmptyResponse -> textProvider.get(R.string.error_empty_response)
         AppError.TokenLimitReached -> textProvider.get(R.string.error_token_limit)
+        AppError.ContextOverflow -> textProvider.get(R.string.error_context_overflow)
         AppError.UnknownHost -> textProvider.get(R.string.error_unknown_host)
         AppError.Timeout -> textProvider.get(R.string.error_timeout)
         AppError.Connection -> textProvider.get(R.string.error_connection)

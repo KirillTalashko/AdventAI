@@ -10,6 +10,7 @@ import com.example.core.data.ai.mapper.toEntity
 import com.example.core.domain.repository.ChatHistoryRepository
 import com.example.core.model.ai.AgentChatMessage
 import com.example.core.model.ai.Conversation
+import com.example.core.model.ai.ConversationTokenStat
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
@@ -76,4 +77,9 @@ class ChatHistoryRepositoryImpl @Inject constructor(
             messageDao.insert(message.toEntity(conversationId = conversationId))
         }
     }
+
+    override fun observeTokenStats(): Flow<List<ConversationTokenStat>> =
+        conversationDao.observeTokenStats().map { rows ->
+            rows.map { it.toDomain() }
+        }
 }

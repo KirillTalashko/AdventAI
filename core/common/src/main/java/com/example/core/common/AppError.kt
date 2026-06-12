@@ -4,6 +4,9 @@ sealed interface AppError {
     data object EmptyPrompt : AppError
     data object EmptyResponse : AppError
     data object TokenLimitReached : AppError
+
+    /** Контекст (system prompt + история + запрос) не помещается в окно модели. */
+    data object ContextOverflow : AppError
     data object Network : AppError
     data object UnknownHost : AppError
     data object Timeout : AppError
