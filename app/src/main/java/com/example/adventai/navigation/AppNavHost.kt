@@ -20,15 +20,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.adventai.R
-import com.example.adventai.ui.documents.DocumentsScreen
-import com.example.adventai.ui.readiness.ReadinessScreen
+import com.example.adventai.ui.statistics.StatisticsScreen
 import com.example.feature.chat.presentation.navigation.ChatDestination
 import com.example.feature.chat.presentation.navigation.chatScreen
 import com.example.feature.home.presentation.navigation.HomeDestination
 import com.example.feature.home.presentation.navigation.homeScreen
 
-private const val DocumentsRoute = "documents"
-private const val ReadinessRoute = "readiness"
+private const val StatisticsRoute = "statistics"
 
 private data class BottomTab(
     val route: String,
@@ -38,8 +36,7 @@ private data class BottomTab(
 
 private val bottomTabs = listOf(
     BottomTab(HomeDestination.ROUTE, R.drawable.ic_tab_chat, "Чат"),
-    BottomTab(DocumentsRoute, R.drawable.ic_tab_documents, "Документы"),
-    BottomTab(ReadinessRoute, R.drawable.ic_tab_readiness, "Готовность")
+    BottomTab(StatisticsRoute, R.drawable.ic_tab_stats, "Статистика")
 )
 
 @Composable
@@ -82,8 +79,7 @@ fun AppNavHost() {
             chatScreen(
                 onNavigateBack = { navController.navigateUp() }
             )
-            composable(route = DocumentsRoute) { DocumentsScreen() }
-            composable(route = ReadinessRoute) { ReadinessScreen() }
+            composable(route = StatisticsRoute) { StatisticsScreen() }
         }
     }
 }

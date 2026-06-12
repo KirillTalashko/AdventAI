@@ -115,6 +115,23 @@
     <string name="error_enter_message">Введите сообщение перед отправкой.</string>
     <string name="error_empty_response">DeepSeek вернул пустой ответ.</string>
     <string name="error_token_limit">Лимит токенов закончился до формирования финального ответа.</string>
+    <string name="error_context_overflow">Контекст не помещается в окно модели. Включите авто-обрезку истории или начните новый диалог.</string>
+
+    <!-- Day 8: токены и контекстное окно -->
+    <string name="tokens_message_usage">вход %1$d · ответ %2$d · всего %3$d ток.</string>
+    <string name="tokens_message_cache">кэш %1$d ток.</string>
+    <string name="context_meter_label">Контекст: %1$s / %2$s ток.</string>
+    <string name="context_meter_overflow_trim">Переполнение — старые сообщения будут обрезаны</string>
+    <string name="context_meter_overflow_block">Переполнение — запрос не уйдёт (включите авто-обрезку)</string>
+    <string name="context_meter_warning">Окно почти заполнено</string>
+    <string name="context_meter_messages">в окне %1$d из %2$d сообщений</string>
+    <string name="message_out_of_window">вне контекста</string>
+    <string name="window_divider_label">↑ модель это уже не видит</string>
+    <string name="settings_section_context">Контекст и токены</string>
+    <string name="settings_context_limit_label">Лимит окна (демо)</string>
+    <string name="settings_context_limit_real">Реальный</string>
+    <string name="settings_auto_trim_label">Авто-обрезка истории</string>
+    <string name="settings_auto_trim_hint">При переполнении окна отбрасывать самые старые сообщения (sliding window) вместо ошибки.</string>
     <string name="error_unknown_host">Не удалось определить адрес api.deepseek.com. Проверьте интернет, DNS, VPN или proxy.</string>
     <string name="error_timeout">Время ожидания запроса истекло. Проверьте соединение и повторите попытку.</string>
     <string name="error_connection">Не удалось подключиться к DeepSeek API. Проверьте интернет, VPN или proxy.</string>

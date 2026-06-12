@@ -21,8 +21,14 @@ ChatScreen → ChatViewModel.sendMessage()
 отправляется в LLM**. Источник истины для сообщений — Room (`ChatHistoryRepository` →
 `ChatMessageDao`), `ChatViewModel` подписан на `observeMessages(agentId)`. `AiAgent.ask(config,
 conversation)` принимает всю историю, `ChatMapper` разворачивает её в `messages` с ролями. Агент помнит
-контекст между запусками приложения. Осталось из памяти/контекста: sliding window, history compression,
-долговременная память по фактам (разделы 1–2).
+контекст между запусками приложения.
+
+**Статус (Day 8, сделано ✅):** подсчёт токенов. `usage` из API больше не теряется — сохраняется по
+сообщению в Room и показывается чипом под ответом. Добавлены: локальная оценка до запроса
+(`TokenEstimator`), лимит контекстного окна и тариф у `AgentLlmModel`, демо-лимит окна + **sliding
+window** (`AgentConfig.autoTrimHistory`), детерминированная ошибка переполнения `AppError.ContextOverflow`
+и вкладка «Статистика» (рост токенов и стоимости по диалогам). Осталось из памяти/контекста: history
+compression, долговременная память по фактам (разделы 1–2).
 
 ---
 
@@ -83,16 +89,16 @@ conversation)` принимает всю историю, `ChatMapper` разво
   `thinking`, но `AiAgent.toRequestOptions()` ставит `thinkingMode = null` → рассуждение **не
   отключается** ни для одного запроса. Для быстрых/коротких ответов это лишние токены и задержка.
 - **`maxTokens = null`** → ответ ничем не ограничен.
-- **Токены уже считаются, но выбрасываются.** `ChatMapper` собирает `LlmAnswer.usage` (`TokenUsage`,
-  включая cache hit/miss), но `AiAgent` маппит в `AgentAnswer(content, modelTitle)` и **теряет `usage` и
-  `reasoningContent`**.
+- ✅ **`usage` больше не выбрасывается** (Day 8). `ChatMapper` собирает `LlmAnswer.usage` (`TokenUsage`,
+  включая cache hit/miss), `AiAgent` пробрасывает его в `AgentAnswer.usage`, ViewModel сохраняет по
+  сообщению в Room. `reasoningContent` пока всё ещё теряется.
 
 **Что сделать:**
 1. Прокинуть `thinkingMode` в `AgentConfig`/`AiAgent` и давать пользователю/агенту выбор «быстро без
    reasoning» vs «думать». Для простых вопросов — `Disabled`.
 2. Задать разумный `maxTokens` по умолчанию (защита от мегаответов и от перерасхода).
-3. Не выбрасывать `usage`: пробросить в `AgentAnswer` и показывать в настройках/диагностике (видно
-   стоимость запроса). `promptCacheHitTokens` подскажет, работает ли кэш промпта.
+3. ✅ **(Day 8) `usage` проброшен** в `AgentAnswer` и показан (чип под ответом + вкладка «Статистика»).
+   `promptCacheHitTokens` виден отдельно — подсказывает, работает ли кэш промпта.
 
 ---
 
@@ -160,10 +166,10 @@ conversation)` принимает всю историю, `ChatMapper` разво
 
 1. ✅ **(Day 7) Передавать историю диалога в запрос** (раздел 1.1) — сделано.
    Файлы: `AiAgent.kt`, `AiChatRepository(+Impl)`, `ChatMapper.kt`, `ChatViewModel.kt`.
-2. **Sliding window + кнопка «Новый диалог»** (1.2, 1.4) — контроль токенов и чистый старт темы.
-   `ChatViewModel.onClearDialog()` уже есть — осталось вывести кнопку в UI.
-3. **Управление reasoning + `maxTokens`** (раздел 3.1–3.2) — скорость и экономия токенов.
-4. **Не терять `usage`/`reasoningContent`** (3.3) — показывать стоимость и (опц.) ход рассуждения.
+2. ✅ **(Day 8) Sliding window + «Новый диалог»** (1.2, 1.4) — авто-обрезка истории
+   (`AgentConfig.autoTrimHistory`) при переполнении окна; кнопка «Новый диалог» в шторке диалогов.
+3. **Управление reasoning + `maxTokens`** (раздел 3.1–3.2) — скорость и экономия токенов (ещё не сделано).
+4. **`usage` ✅, `reasoningContent` ⏳** (3.3) — стоимость и токены показываем; ход рассуждения пока не выводим.
 5. ✅ **(Day 7) Персист диалога (Room)** (раздел 2.1) — сделано: `ChatHistoryRepository` + `ChatMessageDao`,
    история переживает перезапуск.
 6. **Расширенные системные промпты с форматом ответа** (раздел 6).
