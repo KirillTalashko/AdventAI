@@ -1,4 +1,4 @@
-package com.example.adventai.ui.statistics
+package com.example.feature.chat.presentation.statistics
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

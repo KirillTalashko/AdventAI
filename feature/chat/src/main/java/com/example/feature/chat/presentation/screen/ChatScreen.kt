@@ -49,12 +49,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -70,16 +73,18 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.core.designsystem.component.DocumentChecklistCard
-import com.example.core.designsystem.component.ProgressRing
 import com.example.core.designsystem.theme.AdventAITheme
 import com.example.core.designsystem.theme.AppRadii
 import com.example.core.designsystem.theme.AppSpacing
@@ -91,6 +96,12 @@ import com.example.core.model.ai.AgentMessageAuthor
 import com.example.core.model.ai.AgentProvider
 import com.example.core.model.ai.Conversation
 import com.example.feature.chat.R
+import com.example.feature.chat.presentation.contextfill.ContextFillFinish
+import com.example.feature.chat.presentation.contextfill.ContextFillMode
+import com.example.feature.chat.presentation.contextfill.ContextFillUiState
+import com.example.feature.chat.presentation.statistics.StatisticsContent
+import com.example.feature.chat.presentation.statistics.StatisticsUiState
+import com.example.feature.chat.presentation.statistics.StatisticsViewModel
 import com.example.feature.chat.presentation.viewmodel.AgentChatUiState
 import com.example.feature.chat.presentation.viewmodel.ChatViewModel
 import kotlinx.coroutines.launch
@@ -102,12 +113,15 @@ import java.util.Locale
 @Composable
 fun ChatRoute(
     viewModel: ChatViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    statsViewModel: StatisticsViewModel = hiltViewModel()
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
+    val statsState = statsViewModel.uiState.collectAsStateWithLifecycle()
 
     ChatScreen(
         state = uiState.value,
+        statsState = statsState.value,
         onNavigateBack = onNavigateBack,
         onMessageChanged = viewModel::onMessageChanged,
         onSendClick = viewModel::sendMessage,
@@ -119,8 +133,13 @@ fun ChatRoute(
         onModelSelected = viewModel::onModelSelected,
         onSystemPromptChanged = viewModel::onSystemPromptChanged,
         onDialogThemeChanged = viewModel::onDialogThemeChanged,
-        onDemoContextLimitSelected = viewModel::onDemoContextLimitSelected,
-        onAutoTrimChanged = viewModel::onAutoTrimChanged
+        onTemperatureChanged = viewModel::onTemperatureChanged,
+        onMaxTokensChanged = viewModel::onMaxTokensChanged,
+        onTopPChanged = viewModel::onTopPChanged,
+        onStartContextFill = viewModel::onStartContextFill,
+        onStartContextOverflow = viewModel::onStartContextOverflow,
+        onStopContextFill = viewModel::onStopContextFill,
+        onCloseContextFill = viewModel::onCloseContextFill
     )
 }
 
@@ -135,6 +154,7 @@ private val SuggestedPrompts = listOf(
 @Composable
 fun ChatScreen(
     state: AgentChatUiState,
+    statsState: StatisticsUiState,
     onNavigateBack: () -> Unit,
     onMessageChanged: (String) -> Unit,
     onSendClick: () -> Unit,
@@ -146,22 +166,25 @@ fun ChatScreen(
     onModelSelected: (AgentLlmModel) -> Unit,
     onSystemPromptChanged: (String) -> Unit,
     onDialogThemeChanged: (String) -> Unit,
-    onDemoContextLimitSelected: (Int?) -> Unit,
-    onAutoTrimChanged: (Boolean) -> Unit,
+    onTemperatureChanged: (Double?) -> Unit,
+    onMaxTokensChanged: (Int?) -> Unit,
+    onTopPChanged: (Double?) -> Unit,
+    onStartContextFill: () -> Unit,
+    onStartContextOverflow: () -> Unit,
+    onStopContextFill: () -> Unit,
+    onCloseContextFill: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showSettings by remember { mutableStateOf(false) }
-    var showConversations by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val conversationsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val historyDrawerState = rememberDrawerState(DrawerValue.Closed)
+    val statsDrawerState = rememberDrawerState(DrawerValue.Closed)
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
     val messages = state.messages
     val isEmptyConversation = messages.none { it.author == AgentMessageAuthor.User }
-    val chatItems = remember(messages, state.windowStartIndex) {
-        buildChatItems(messages, state.windowStartIndex)
-    }
+    val chatItems = remember(messages) { buildChatItems(messages) }
     val scrollAnchor = chatItems.size + (if (state.isLoading) 1 else 0)
 
     LaunchedEffect(scrollAnchor) {
@@ -176,80 +199,138 @@ fun ChatScreen(
         onSendClick()
     }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            AgentHeader(
-                config = state.config,
-                isTyping = state.isLoading,
-                onNavigateBack = onNavigateBack,
-                onConversationsClick = { showConversations = true },
-                onSettingsClick = { showSettings = true }
-            )
-
-            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                if (isEmptyConversation) {
-                    EmptyChatState(
-                        config = state.config,
-                        greeting = messages.lastOrNull { it.author == AgentMessageAuthor.Agent }?.text,
-                        modifier = Modifier.fillMaxSize()
+    Box(modifier = modifier.fillMaxSize()) {
+        ModalNavigationDrawer(
+            drawerState = historyDrawerState,
+            drawerContent = {
+                ModalDrawerSheet(
+                    modifier = Modifier.fillMaxWidth(0.86f),
+                    drawerShape = RoundedCornerShape(topEnd = AppRadii.sheet, bottomEnd = AppRadii.sheet)
+                ) {
+                    ConversationsSheet(
+                        conversations = state.conversations,
+                        activeConversationId = state.activeConversationId,
+                        onNewDialog = {
+                            scope.launch { historyDrawerState.close() }
+                            onNewDialog()
+                        },
+                        onSelectConversation = { id ->
+                            scope.launch { historyDrawerState.close() }
+                            onSelectConversation(id)
+                        },
+                        onDeleteConversation = onDeleteConversation,
+                        onClose = { scope.launch { historyDrawerState.close() } }
                     )
-                } else {
-                    MessageList(
-                        listState = listState,
-                        chatItems = chatItems,
-                        isLoading = state.isLoading,
-                        errorMessage = state.errorMessage
-                    )
-                    val showScrollDown by remember {
-                        derivedStateOf { listState.canScrollForward }
+                }
+            }
+        ) {
+            // Material3 даёт только левый drawer; правую шторку (статистика) делаем через RTL.
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                ModalNavigationDrawer(
+                    drawerState = statsDrawerState,
+                    drawerContent = {
+                        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                            ModalDrawerSheet(
+                                modifier = Modifier.fillMaxWidth(0.92f),
+                                drawerShape = RoundedCornerShape(topStart = AppRadii.sheet, bottomStart = AppRadii.sheet)
+                            ) {
+                                StatisticsContent(
+                                    state = statsState,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        }
                     }
-                    if (showScrollDown) {
-                        ScrollToBottomButton(
-                            onClick = {
-                                scope.launch {
-                                    listState.animateScrollToItem(
-                                        (scrollAnchor - 1).coerceAtLeast(0)
-                                    )
-                                }
-                            },
+                ) {
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                        Column(
                             modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .padding(end = AppSpacing.lg, bottom = AppSpacing.sm)
-                        )
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.background)
+                        ) {
+                            AgentHeader(
+                                config = state.config,
+                                isTyping = state.isLoading,
+                                onNavigateBack = onNavigateBack,
+                                onHistoryClick = { scope.launch { historyDrawerState.open() } },
+                                onStatsClick = { scope.launch { statsDrawerState.open() } },
+                                onSettingsClick = { showSettings = true }
+                            )
+
+                            if (state.contextFill.active) {
+                                ContextFillBanner(
+                                    fill = state.contextFill,
+                                    onStop = onStopContextFill,
+                                    onClose = onCloseContextFill
+                                )
+                            }
+
+                            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                                if (isEmptyConversation) {
+                                    EmptyChatState(
+                                        config = state.config,
+                                        greeting = messages.lastOrNull { it.author == AgentMessageAuthor.Agent }?.text,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                } else {
+                                    MessageList(
+                                        listState = listState,
+                                        chatItems = chatItems,
+                                        isLoading = state.isLoading,
+                                        errorMessage = state.errorMessage,
+                                        outOfWindowCount = if (state.contextFill.active) {
+                                            state.contextFill.droppedCount
+                                        } else {
+                                            0
+                                        }
+                                    )
+                                    val showScrollDown by remember {
+                                        derivedStateOf { listState.canScrollForward }
+                                    }
+                                    if (showScrollDown) {
+                                        ScrollToBottomButton(
+                                            onClick = {
+                                                scope.launch {
+                                                    listState.animateScrollToItem(
+                                                        (scrollAnchor - 1).coerceAtLeast(0)
+                                                    )
+                                                }
+                                            },
+                                            modifier = Modifier
+                                                .align(Alignment.BottomEnd)
+                                                .padding(end = AppSpacing.lg, bottom = AppSpacing.sm)
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (isEmptyConversation) {
+                                SuggestionRow(
+                                    prompts = SuggestedPrompts,
+                                    enabled = !state.isLoading,
+                                    onClick = ::submit
+                                )
+                            }
+
+                            ContextMeter(
+                                used = state.contextTokens,
+                                limit = state.contextLimit
+                            )
+
+                            MessageComposer(
+                                value = state.message,
+                                isLoading = state.isLoading,
+                                onValueChange = onMessageChanged,
+                                onSendClick = onSendClick,
+                                onStopClick = onStopClick,
+                                modifier = Modifier
+                                    .navigationBarsPadding()
+                                    .imePadding()
+                            )
+                        }
                     }
                 }
             }
-
-            if (isEmptyConversation) {
-                SuggestionRow(
-                    prompts = SuggestedPrompts,
-                    enabled = !state.isLoading,
-                    onClick = ::submit
-                )
-            }
-
-            ContextMeter(
-                used = state.contextTokens,
-                limit = state.contextLimit,
-                autoTrim = state.config.autoTrimHistory,
-                messagesInWindow = state.messages.size - state.windowStartIndex,
-                messagesTotal = state.messages.size
-            )
-
-            MessageComposer(
-                value = state.message,
-                isLoading = state.isLoading,
-                onValueChange = onMessageChanged,
-                onSendClick = onSendClick,
-                onStopClick = onStopClick,
-                modifier = Modifier
-                    .navigationBarsPadding()
-                    .imePadding()
-            )
         }
 
         if (showSettings) {
@@ -266,34 +347,18 @@ fun ChatScreen(
                     onModelSelected = onModelSelected,
                     onSystemPromptChanged = onSystemPromptChanged,
                     onDialogThemeChanged = onDialogThemeChanged,
-                    onDemoContextLimitSelected = onDemoContextLimitSelected,
-                    onAutoTrimChanged = onAutoTrimChanged,
+                    onTemperatureChanged = onTemperatureChanged,
+                    onMaxTokensChanged = onMaxTokensChanged,
+                    onTopPChanged = onTopPChanged,
+                    onStartContextFill = {
+                        showSettings = false
+                        onStartContextFill()
+                    },
+                    onStartContextOverflow = {
+                        showSettings = false
+                        onStartContextOverflow()
+                    },
                     onClose = { showSettings = false }
-                )
-            }
-        }
-
-        if (showConversations) {
-            ModalBottomSheet(
-                onDismissRequest = { showConversations = false },
-                sheetState = conversationsSheetState,
-                shape = RoundedCornerShape(topStart = AppRadii.sheet, topEnd = AppRadii.sheet),
-                containerColor = MaterialTheme.colorScheme.surface,
-                dragHandle = { SheetHandle() }
-            ) {
-                ConversationsSheet(
-                    conversations = state.conversations,
-                    activeConversationId = state.activeConversationId,
-                    onNewDialog = {
-                        showConversations = false
-                        onNewDialog()
-                    },
-                    onSelectConversation = { id ->
-                        showConversations = false
-                        onSelectConversation(id)
-                    },
-                    onDeleteConversation = onDeleteConversation,
-                    onClose = { showConversations = false }
                 )
             }
         }
@@ -309,7 +374,8 @@ private fun AgentHeader(
     config: AgentConfig,
     isTyping: Boolean,
     onNavigateBack: () -> Unit,
-    onConversationsClick: () -> Unit,
+    onHistoryClick: () -> Unit,
+    onStatsClick: () -> Unit,
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -347,8 +413,13 @@ private fun AgentHeader(
             }
             CircleIconButton(
                 iconRes = R.drawable.ic_forum_24,
-                contentDescription = "Диалоги",
-                onClick = onConversationsClick
+                contentDescription = "История диалогов",
+                onClick = onHistoryClick
+            )
+            CircleIconButton(
+                iconRes = R.drawable.ic_stats_24,
+                contentDescription = "Статистика",
+                onClick = onStatsClick
             )
             CircleIconButton(
                 iconRes = R.drawable.ic_settings_24,
@@ -405,8 +476,13 @@ private fun MessageList(
     chatItems: List<ChatListItem>,
     isLoading: Boolean,
     errorMessage: String?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    outOfWindowCount: Int = 0
 ) {
+    // Индекс первого сообщения, которое ещё в окне: перед ним рисуем границу «модель это не видит».
+    val dividerIndex = remember(chatItems, outOfWindowCount) {
+        windowDividerIndex(chatItems, outOfWindowCount)
+    }
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -420,15 +496,18 @@ private fun MessageList(
         ),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
     ) {
-        itemsIndexed(chatItems) { _, item ->
+        itemsIndexed(chatItems) { index, item ->
+            if (index == dividerIndex) {
+                WindowDivider()
+            }
+            val outOfWindow = item is ChatListItem.Bubble && dividerIndex >= 0 && index < dividerIndex
             when (item) {
                 is ChatListItem.DateHeader -> DateSeparator(label = item.label)
-                ChatListItem.WindowDivider -> WindowDivider()
                 is ChatListItem.Bubble -> MessageBubble(
                     message = item.message,
                     isLastInGroup = item.isLastInGroup,
                     topSpacing = if (item.isFirstInGroup) AppSpacing.sm else 0.dp,
-                    outOfWindow = item.outOfWindow
+                    outOfWindow = outOfWindow
                 )
             }
         }
@@ -437,6 +516,42 @@ private fun MessageList(
         }
         errorMessage?.let { message ->
             item { ErrorMessage(message = message) }
+        }
+    }
+}
+
+/** Индекс в [chatItems] первого «пузыря», который ещё попадает в окно (перед ним — граница). */
+private fun windowDividerIndex(chatItems: List<ChatListItem>, outOfWindowCount: Int): Int {
+    if (outOfWindowCount <= 0) return -1
+    var bubbleSeen = 0
+    chatItems.forEachIndexed { index, item ->
+        if (item is ChatListItem.Bubble) {
+            if (bubbleSeen == outOfWindowCount) return index
+            bubbleSeen++
+        }
+    }
+    return -1
+}
+
+@Composable
+private fun WindowDivider(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = AppSpacing.sm),
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.errorContainer
+        ) {
+            Text(
+                text = stringResource(R.string.window_divider_label),
+                modifier = Modifier.padding(horizontal = AppSpacing.md, vertical = 5.dp),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                maxLines = 1
+            )
         }
     }
 }
@@ -464,36 +579,6 @@ private fun DateSeparator(
                 maxLines = 1
             )
         }
-    }
-}
-
-@Composable
-private fun WindowDivider(modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = AppSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-    ) {
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(1.dp)
-                .background(MaterialTheme.colorScheme.error.copy(alpha = 0.35f))
-        )
-        Text(
-            text = stringResource(R.string.window_divider_label),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.error,
-            maxLines = 1
-        )
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(1.dp)
-                .background(MaterialTheme.colorScheme.error.copy(alpha = 0.35f))
-        )
     }
 }
 
@@ -528,21 +613,12 @@ private fun MessageBubble(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(top = topSpacing),
+            .padding(top = topSpacing)
+            .then(if (outOfWindow) Modifier.alpha(0.45f) else Modifier),
         horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
     ) {
-        if (outOfWindow) {
-            Text(
-                text = stringResource(R.string.message_out_of_window),
-                modifier = Modifier.padding(start = 6.dp, end = 6.dp, bottom = 2.dp),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.error
-            )
-        }
         Surface(
-            modifier = Modifier
-                .widthIn(max = 340.dp)
-                .alpha(if (outOfWindow) 0.4f else 1f),
+            modifier = Modifier.widthIn(max = 340.dp),
             shape = shape,
             color = bubbleColor
         ) {
@@ -573,6 +649,15 @@ private fun MessageBubble(
                     }
                 }
             }
+        }
+        if (outOfWindow) {
+            Text(
+                text = stringResource(R.string.message_out_of_window),
+                modifier = Modifier.padding(top = 3.dp, start = 6.dp, end = 6.dp),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
+                maxLines = 1
+            )
         }
         if (!isUser) {
             message.usage?.let { usage -> MessageTokenInfo(usage = usage) }
@@ -627,9 +712,6 @@ private fun MessageTokenInfo(
 private fun ContextMeter(
     used: Int,
     limit: Int,
-    autoTrim: Boolean,
-    messagesInWindow: Int,
-    messagesTotal: Int,
     modifier: Modifier = Modifier
 ) {
     if (limit <= 0) return
@@ -642,7 +724,6 @@ private fun ContextMeter(
         else -> MaterialTheme.colorScheme.primary
     }
     val statusText = when {
-        overflow && autoTrim -> stringResource(R.string.context_meter_overflow_trim)
         overflow -> stringResource(R.string.context_meter_overflow_block)
         warning -> stringResource(R.string.context_meter_warning)
         else -> null
@@ -692,22 +773,6 @@ private fun ContextMeter(
                     .fillMaxHeight()
                     .clip(CircleShape)
                     .background(barColor)
-            )
-        }
-        if (autoTrim && messagesTotal > 0) {
-            Text(
-                text = stringResource(
-                    R.string.context_meter_messages,
-                    messagesInWindow,
-                    messagesTotal
-                ),
-                style = MaterialTheme.typography.labelSmall,
-                color = if (messagesInWindow < messagesTotal) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                maxLines = 1
             )
         }
     }
@@ -829,58 +894,6 @@ private fun EmptyChatState(
                 maxLines = 4,
                 overflow = TextOverflow.Ellipsis
             )
-        }
-        ReadinessCard(progress = 0.6f)
-    }
-}
-
-@Composable
-private fun ReadinessCard(
-    progress: Float,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(AppRadii.cardLarge),
-        color = MaterialTheme.colorScheme.surfaceContainer
-    ) {
-        Row(
-            modifier = Modifier.padding(AppSpacing.lg),
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.lg),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            ProgressRing(
-                progress = progress,
-                diameter = 84.dp,
-                strokeWidth = 9.dp
-            ) {
-                Text(
-                    text = "${(progress * 100).toInt()}%",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
-            ) {
-                Text(
-                    text = "Готовность к подаче",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = "Соберите документы и проверьте пакет — я подскажу следующий шаг.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
         }
     }
 }
@@ -1091,8 +1104,8 @@ private fun ConversationsSheet(
 ) {
     Column(
         modifier = modifier
-            .fillMaxWidth()
-            .fillMaxHeight(0.8f)
+            .fillMaxSize()
+            .statusBarsPadding()
             .padding(horizontal = AppSpacing.lg, vertical = AppSpacing.sm),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.md)
     ) {
@@ -1255,8 +1268,11 @@ private fun AgentSettingsSheet(
     onModelSelected: (AgentLlmModel) -> Unit,
     onSystemPromptChanged: (String) -> Unit,
     onDialogThemeChanged: (String) -> Unit,
-    onDemoContextLimitSelected: (Int?) -> Unit,
-    onAutoTrimChanged: (Boolean) -> Unit,
+    onTemperatureChanged: (Double?) -> Unit,
+    onMaxTokensChanged: (Int?) -> Unit,
+    onTopPChanged: (Double?) -> Unit,
+    onStartContextFill: () -> Unit,
+    onStartContextOverflow: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -1307,13 +1323,28 @@ private fun AgentSettingsSheet(
         }
 
         SettingsSection(title = stringResource(R.string.settings_section_context)) {
-            ContextLimitChips(
-                selected = state.config.demoContextLimitTokens,
-                onSelect = onDemoContextLimitSelected
+            StartContextFillButton(onClick = onStartContextFill)
+            OverflowDemoButton(onClick = onStartContextOverflow)
+        }
+
+        SettingsSection(title = stringResource(R.string.settings_section_api)) {
+            ParamChips(
+                title = stringResource(R.string.settings_temperature_label),
+                options = TemperaturePresets,
+                selected = state.config.temperature,
+                onSelect = onTemperatureChanged
             )
-            AutoTrimRow(
-                checked = state.config.autoTrimHistory,
-                onCheckedChange = onAutoTrimChanged
+            ParamChips(
+                title = stringResource(R.string.settings_top_p_label),
+                options = TopPPresets,
+                selected = state.config.topP,
+                onSelect = onTopPChanged
+            )
+            ParamChips(
+                title = stringResource(R.string.settings_max_tokens_label),
+                options = MaxTokensPresets,
+                selected = state.config.maxTokens,
+                onSelect = onMaxTokensChanged
             )
         }
 
@@ -1405,41 +1436,6 @@ private fun SoftTextField(
     }
 }
 
-private val ContextLimitPresets: List<Int?> = listOf(null, 4000, 2000, 1000, 500)
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ContextLimitChips(
-    selected: Int?,
-    onSelect: (Int?) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-    ) {
-        Text(
-            text = stringResource(R.string.settings_context_limit_label),
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
-        ) {
-            ContextLimitPresets.forEach { preset ->
-                SelectableChip(
-                    text = preset?.let { formatTokens(it) }
-                        ?: stringResource(R.string.settings_context_limit_real),
-                    selected = preset == selected,
-                    onClick = { onSelect(preset) }
-                )
-            }
-        }
-    }
-}
-
 @Composable
 private fun SelectableChip(
     text: String,
@@ -1479,44 +1475,322 @@ private fun SelectableChip(
     }
 }
 
+private val TemperaturePresets: List<Double?> = listOf(null, 0.0, 0.3, 0.7, 1.0, 1.5)
+private val TopPPresets: List<Double?> = listOf(null, 0.5, 0.8, 0.9, 1.0)
+private val MaxTokensPresets: List<Int?> = listOf(null, 256, 512, 1024, 2048)
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun AutoTrimRow(
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
+private fun <T> ParamChips(
+    title: String,
+    options: List<T?>,
+    selected: T?,
+    onSelect: (T?) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
+    Column(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(AppSpacing.md),
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
     ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
         ) {
-            Text(
-                text = stringResource(R.string.settings_auto_trim_label),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = stringResource(R.string.settings_auto_trim_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis
-            )
+            options.forEach { value ->
+                SelectableChip(
+                    text = value?.toString() ?: stringResource(R.string.settings_param_default),
+                    selected = value == selected,
+                    onClick = { onSelect(value) }
+                )
+            }
         }
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                checkedTrackColor = MaterialTheme.colorScheme.primary
+    }
+}
+
+@Composable
+private fun StartContextFillButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(AppRadii.bubble))
+                .clickable(onClick = onClick),
+            shape = RoundedCornerShape(AppRadii.bubble),
+            color = MaterialTheme.colorScheme.primary
+        ) {
+            Row(
+                modifier = Modifier.padding(AppSpacing.lg),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.md),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_stats_24),
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
+                Text(
+                    text = stringResource(R.string.context_fill_start_button),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            }
+        }
+        Text(
+            text = stringResource(R.string.context_fill_start_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun OverflowDemoButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(AppRadii.bubble))
+                .clickable(onClick = onClick),
+            shape = RoundedCornerShape(AppRadii.bubble),
+            color = MaterialTheme.colorScheme.surface,
+            border = androidx.compose.foundation.BorderStroke(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.error
             )
+        ) {
+            Row(
+                modifier = Modifier.padding(AppSpacing.lg),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.md),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_add_24),
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.error
+                )
+                Text(
+                    text = stringResource(R.string.context_overflow_button),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+        Text(
+            text = stringResource(R.string.context_overflow_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun ContextFillBanner(
+    fill: ContextFillUiState,
+    onStop: () -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isError = fill.finish == ContextFillFinish.Error
+    val isOverflow = fill.mode == ContextFillMode.Overflow
+    // Тонированная карточка (а не «белый прямоугольник»): на ошибке — error-контейнер.
+    val containerColor = if (isError) {
+        MaterialTheme.colorScheme.errorContainer
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerHighest
+    }
+    val onContainer = if (isError) {
+        MaterialTheme.colorScheme.onErrorContainer
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+    val subColor = onContainer.copy(alpha = 0.72f)
+    val accent = when {
+        isError -> MaterialTheme.colorScheme.error
+        !isOverflow && !fill.nameInWindow -> AdventTheme.status.warning
+        else -> MaterialTheme.colorScheme.primary
+    }
+    val finishText: String? = when (fill.finish) {
+        ContextFillFinish.Error ->
+            fill.errorText?.let { stringResource(R.string.context_fill_finish_error, it) }
+        ContextFillFinish.MaxTurns ->
+            if (isOverflow) "Промпт уместился — переполнения не случилось."
+            else stringResource(R.string.context_fill_finish_maxturns, fill.turn)
+        ContextFillFinish.Cancelled ->
+            stringResource(R.string.context_fill_finish_cancelled)
+        null -> null
+    }
+    val title = stringResource(
+        when {
+            isOverflow && fill.running -> R.string.context_overflow_banner_running
+            isOverflow -> R.string.context_overflow_banner_done
+            fill.running -> R.string.context_fill_banner_title_running
+            else -> R.string.context_fill_banner_title_done
+        }
+    )
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = AppSpacing.md, vertical = AppSpacing.sm),
+        shape = RoundedCornerShape(AppRadii.cardLarge),
+        color = containerColor,
+        shadowElevation = 3.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(AppSpacing.lg),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.md),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (fill.running) {
+                        TypingDots(color = accent, dotSize = 5.dp)
+                    }
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = onContainer,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                fill.modelTitle?.let {
+                    Text(
+                        text = stringResource(R.string.context_fill_model, it),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = subColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                if (isOverflow) {
+                    Text(
+                        text = stringResource(
+                            R.string.context_overflow_prompt,
+                            formatTokens(fill.tokensSent),
+                            formatTokens(fill.modelWindow)
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = subColor,
+                        maxLines = 2
+                    )
+                } else {
+                    Text(
+                        text = stringResource(
+                            R.string.context_fill_turn,
+                            fill.turn,
+                            formatTokens(fill.tokensSent)
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = subColor,
+                        maxLines = 1
+                    )
+                    Text(
+                        text = if (fill.nameInWindow) {
+                            stringResource(R.string.context_fill_name_in_window, fill.name)
+                        } else {
+                            stringResource(R.string.context_fill_name_out_window, fill.name)
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (fill.nameInWindow) subColor else AdventTheme.status.warning,
+                        maxLines = 1
+                    )
+                    Text(
+                        text = when (fill.nameRecalled) {
+                            true -> stringResource(R.string.context_fill_name_recalled)
+                            false -> stringResource(R.string.context_fill_name_forgotten)
+                            null -> stringResource(R.string.context_fill_name_unknown)
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = when (fill.nameRecalled) {
+                            true -> AdventTheme.status.success
+                            false -> MaterialTheme.colorScheme.error
+                            null -> subColor
+                        },
+                        maxLines = 1
+                    )
+                }
+
+                if (fill.running) {
+                    fill.note?.let { note ->
+                        Text(
+                            text = note,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = AdventTheme.status.warning,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                finishText?.let { text ->
+                    Text(
+                        text = text,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isError) onContainer else accent,
+                        maxLines = 4,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            if (fill.running) {
+                BannerActionButton(text = stringResource(R.string.context_fill_stop), onClick = onStop)
+            } else {
+                BannerActionButton(text = stringResource(R.string.context_fill_close), onClick = onClose)
+            }
+        }
+    }
+}
+
+@Composable
+private fun BannerActionButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .clip(CircleShape)
+            .clickable(onClick = onClick),
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.primary
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = AppSpacing.lg, vertical = AppSpacing.sm),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onPrimary,
+            maxLines = 1
         )
     }
 }
@@ -1741,26 +2015,17 @@ private fun AgentProvider.label(): String = when (this) {
 
 sealed interface ChatListItem {
     data class DateHeader(val label: String) : ChatListItem
-    data object WindowDivider : ChatListItem
     data class Bubble(
         val message: AgentChatMessage,
         val isFirstInGroup: Boolean,
-        val isLastInGroup: Boolean,
-        val outOfWindow: Boolean = false
+        val isLastInGroup: Boolean
     ) : ChatListItem
 }
 
-private fun buildChatItems(
-    messages: List<AgentChatMessage>,
-    windowStartIndex: Int
-): List<ChatListItem> {
+private fun buildChatItems(messages: List<AgentChatMessage>): List<ChatListItem> {
     val items = mutableListOf<ChatListItem>()
     var lastDayKey: Long? = null
     messages.forEachIndexed { index, message ->
-        // Граница окна: всё, что выше windowStartIndex, уже не уходит в модель.
-        if (windowStartIndex in 1..messages.lastIndex && index == windowStartIndex) {
-            items += ChatListItem.WindowDivider
-        }
         val dayKey = dayKey(message.createdAt)
         if (dayKey != null && dayKey != lastDayKey) {
             items += ChatListItem.DateHeader(dayLabel(message.createdAt))
@@ -1777,8 +2042,7 @@ private fun buildChatItems(
         items += ChatListItem.Bubble(
             message = message,
             isFirstInGroup = isFirst,
-            isLastInGroup = isLast,
-            outOfWindow = index < windowStartIndex
+            isLastInGroup = isLast
         )
     }
     return items
@@ -1849,6 +2113,7 @@ private fun ChatScreenPreview() {
                     )
                 )
             ),
+            statsState = StatisticsUiState(),
             onNavigateBack = {},
             onMessageChanged = {},
             onSendClick = {},
@@ -1860,8 +2125,13 @@ private fun ChatScreenPreview() {
             onModelSelected = {},
             onSystemPromptChanged = {},
             onDialogThemeChanged = {},
-            onDemoContextLimitSelected = {},
-            onAutoTrimChanged = {}
+            onTemperatureChanged = {},
+            onMaxTokensChanged = {},
+            onTopPChanged = {},
+            onStartContextFill = {},
+            onStartContextOverflow = {},
+            onStopContextFill = {},
+            onCloseContextFill = {}
         )
     }
 }

@@ -1,4 +1,4 @@
-package com.example.adventai.ui.statistics
+package com.example.feature.chat.presentation.statistics
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -21,7 +21,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,20 +31,16 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.core.designsystem.theme.AdventTheme
 import com.example.core.designsystem.theme.AppRadii
 import com.example.core.designsystem.theme.AppSpacing
 import java.util.Locale
 
 @Composable
-fun StatisticsScreen(
-    modifier: Modifier = Modifier,
-    viewModel: StatisticsViewModel = hiltViewModel()
+fun StatisticsContent(
+    state: StatisticsUiState,
+    modifier: Modifier = Modifier
 ) {
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
-
     LazyColumn(
         modifier = modifier
             .fillMaxSize()

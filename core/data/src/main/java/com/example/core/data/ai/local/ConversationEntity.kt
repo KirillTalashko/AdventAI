@@ -19,5 +19,11 @@ data class ConversationEntity(
     @ColumnInfo(name = "created_at")
     val createdAt: Long,
     @ColumnInfo(name = "updated_at")
-    val updatedAt: Long
+    val updatedAt: Long,
+    /**
+     * Эфемерный диалог демо-заливки контекста: не показывается в списке диалогов и статистике,
+     * удаляется в конце сессии.
+     */
+    @ColumnInfo(name = "ephemeral")
+    val ephemeral: Boolean = false
 )

@@ -11,6 +11,8 @@ data class ChatRequestDto(
     val thinking: ThinkingDto? = null,
     @SerializedName("temperature")
     val temperature: Double? = null,
+    @SerializedName("top_p")
+    val topP: Double? = null,
     @SerializedName("max_tokens")
     val maxTokens: Int? = null,
     @SerializedName("stop")
