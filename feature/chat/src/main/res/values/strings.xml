@@ -115,23 +115,48 @@
     <string name="error_enter_message">Введите сообщение перед отправкой.</string>
     <string name="error_empty_response">DeepSeek вернул пустой ответ.</string>
     <string name="error_token_limit">Лимит токенов закончился до формирования финального ответа.</string>
-    <string name="error_context_overflow">Контекст не помещается в окно модели. Включите авто-обрезку истории или начните новый диалог.</string>
+    <string name="error_context_overflow">Контекст не помещается в окно модели. Начните новый диалог или сократите историю.</string>
 
     <!-- Day 8: токены и контекстное окно -->
     <string name="tokens_message_usage">вход %1$d · ответ %2$d · всего %3$d ток.</string>
     <string name="tokens_message_cache">кэш %1$d ток.</string>
     <string name="context_meter_label">Контекст: %1$s / %2$s ток.</string>
     <string name="context_meter_overflow_trim">Переполнение — старые сообщения будут обрезаны</string>
-    <string name="context_meter_overflow_block">Переполнение — запрос не уйдёт (включите авто-обрезку)</string>
+    <string name="context_meter_overflow_block">Переполнение окна — запрос не уйдёт</string>
     <string name="context_meter_warning">Окно почти заполнено</string>
     <string name="context_meter_messages">в окне %1$d из %2$d сообщений</string>
     <string name="message_out_of_window">вне контекста</string>
     <string name="window_divider_label">↑ модель это уже не видит</string>
-    <string name="settings_section_context">Контекст и токены</string>
-    <string name="settings_context_limit_label">Лимит окна (демо)</string>
-    <string name="settings_context_limit_real">Реальный</string>
-    <string name="settings_auto_trim_label">Авто-обрезка истории</string>
-    <string name="settings_auto_trim_hint">При переполнении окна отбрасывать самые старые сообщения (sliding window) вместо ошибки.</string>
+    <string name="settings_section_context">Демонстрация контекста</string>
+
+    <!-- Day 9: авто-диалог заливки контекста -->
+    <string name="context_fill_start_button">Авто-диалог: залить контекст</string>
+    <string name="context_fill_start_hint">Запустит фоновый авто-диалог на DeepSeek: визовые вопросы забивают контекстное окно. Старые сообщения (включая ваше имя) выпадают из окна — и модель перестаёт помнить, как вас зовут.</string>
+    <string name="context_fill_banner_title_running">Заливка контекста идёт</string>
+    <string name="context_fill_banner_title_done">Заливка остановлена</string>
+    <string name="context_fill_model">Модель: %1$s</string>
+    <string name="context_fill_turn">Ход %1$d · контекст ~%2$s ток.</string>
+    <string name="context_fill_name_in_window">Имя «%1$s» в окне: да</string>
+    <string name="context_fill_name_out_window">Имя «%1$s» выпало из окна</string>
+    <string name="context_fill_name_unknown">Помнит имя: ещё проверяем…</string>
+    <string name="context_fill_name_recalled">Модель помнит имя ✓</string>
+    <string name="context_fill_name_forgotten">Модель забыла имя ✗</string>
+    <string name="context_fill_dropped">Вне окна: %1$d сообщ.</string>
+    <string name="context_fill_finish_error">Модель выдала ошибку: %1$s</string>
+    <string name="context_fill_finish_maxturns">Достигнут лимит ходов демо (%1$d).</string>
+    <string name="context_fill_finish_cancelled">Остановлено вручную.</string>
+    <string name="context_fill_stop">Стоп</string>
+    <string name="context_fill_close">Закрыть</string>
+    <string name="context_overflow_button">Переполнить окно (один запрос)</string>
+    <string name="context_overflow_hint">Отправит один огромный промпт на DeepSeek — больше контекстного окна модели, чтобы получить реальную ошибку переполнения.</string>
+    <string name="context_overflow_banner_running">Отправляю огромный промпт…</string>
+    <string name="context_overflow_banner_done">Переполнение окна</string>
+    <string name="context_overflow_prompt">Промпт ~%1$s ток · окно модели ~%2$s ток.</string>
+    <string name="settings_section_api">Параметры API</string>
+    <string name="settings_temperature_label">Temperature</string>
+    <string name="settings_top_p_label">Top-p</string>
+    <string name="settings_max_tokens_label">Max tokens</string>
+    <string name="settings_param_default">по умолчанию</string>
     <string name="error_unknown_host">Не удалось определить адрес api.deepseek.com. Проверьте интернет, DNS, VPN или proxy.</string>
     <string name="error_timeout">Время ожидания запроса истекло. Проверьте соединение и повторите попытку.</string>
     <string name="error_connection">Не удалось подключиться к DeepSeek API. Проверьте интернет, VPN или proxy.</string>

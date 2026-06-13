@@ -19,6 +19,15 @@ interface ChatHistoryRepository {
     /** Создать новый диалог, вернуть его id. */
     suspend fun createConversation(agentId: String, title: String): Long
 
+    /**
+     * Создать эфемерный (session-scoped) диалог для демо-заливки контекста. Такие диалоги
+     * не попадают в список диалогов и статистику и удаляются в конце сессии.
+     */
+    suspend fun createEphemeralConversation(agentId: String, title: String): Long
+
+    /** Удалить все эфемерные диалоги агента (очистка в конце сессии / при старте). */
+    suspend fun deleteEphemeralConversations(agentId: String)
+
     suspend fun updateConversationTitle(conversationId: Long, title: String)
 
     /** Поднять диалог наверх списка (обновить updated_at). */
@@ -38,4 +47,24 @@ interface ChatHistoryRepository {
 
     /** Сводка по токенам всех диалогов (для экрана «Статистика»), свежие сверху. */
     fun observeTokenStats(): Flow<List<ConversationTokenStat>>
+
+    // --- Банк вопросов для демо-заливки контекста (session-scoped, чистится в конце сессии) ---
+
+    /** Залить банк визовых вопросов, если он ещё пуст (idempotent на сессию). */
+    suspend fun seedFillerQuestions(questions: List<String>)
+
+    /** Неиспользованные вопросы по порядку. */
+    suspend fun getUnusedFillerQuestions(): List<FillerQuestion>
+
+    /** Пометить вопрос использованным. */
+    suspend fun markFillerUsed(id: Long)
+
+    /** Очистить банк вопросов (конец сессии / при старте). */
+    suspend fun clearFillerQuestions()
 }
+
+/** Вопрос-наполнитель для демо-заливки контекста. */
+data class FillerQuestion(
+    val id: Long,
+    val text: String
+)

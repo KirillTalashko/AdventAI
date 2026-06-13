@@ -28,6 +28,7 @@ fun ChatMessage.toChatRequestDto(options: ChatRequestOptions): ChatRequestDto =
             .takeIf { options.model.supportsThinkingParameter }
             ?.toThinkingDto(),
         temperature = options.temperature.takeIf { options.model.supportsTemperature },
+        topP = options.topP.takeIf { options.model.supportsTemperature },
         maxTokens = options.maxTokens,
         stop = options.stop.takeIf { it.isNotEmpty() }
     )
@@ -40,6 +41,7 @@ fun ChatMessage.toOpenRouterChatRequestDto(
         model = modelId,
         messages = options.toMessageDtos(userMessage = this),
         temperature = options.temperature,
+        topP = options.topP,
         maxTokens = options.maxTokens,
         stop = options.stop.takeIf { it.isNotEmpty() }
     )
@@ -52,6 +54,7 @@ fun List<ChatMessage>.toChatRequestDto(options: ChatRequestOptions): ChatRequest
             .takeIf { options.model.supportsThinkingParameter }
             ?.toThinkingDto(),
         temperature = options.temperature.takeIf { options.model.supportsTemperature },
+        topP = options.topP.takeIf { options.model.supportsTemperature },
         maxTokens = options.maxTokens,
         stop = options.stop.takeIf { it.isNotEmpty() }
     )
@@ -64,6 +67,7 @@ fun List<ChatMessage>.toOpenRouterChatRequestDto(
         model = modelId,
         messages = options.toMessageDtos(conversation = this),
         temperature = options.temperature,
+        topP = options.topP,
         maxTokens = options.maxTokens,
         stop = options.stop.takeIf { it.isNotEmpty() }
     )

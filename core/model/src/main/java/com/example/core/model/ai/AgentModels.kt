@@ -11,11 +11,10 @@ data class AgentConfig(
      * окна на коротком диалоге (Day 8).
      */
     val demoContextLimitTokens: Int? = null,
-    /**
-     * Авто-обрезка истории (sliding window): при превышении лимита окна агент
-     * отбрасывает самые старые сообщения, вместо того чтобы возвращать ошибку.
-     */
-    val autoTrimHistory: Boolean = false
+    /** Параметры API. `null` — значение по умолчанию у провайдера. */
+    val temperature: Double? = null,
+    val maxTokens: Int? = null,
+    val topP: Double? = null
 )
 
 /** Эффективный лимит окна: демо-значение, но не больше реального лимита модели. */
@@ -102,12 +101,34 @@ enum class AgentLlmModel(
         provider = AgentProvider.OpenRouter,
         maxContextTokens = 131_072,
         pricing = ModelPricing.Free
+    ),
+    GemmaFree(
+        title = "Gemma 4 31B",
+        apiId = "google/gemma-4-31b-it:free",
+        provider = AgentProvider.OpenRouter,
+        maxContextTokens = 131_072,
+        pricing = ModelPricing.Free
+    ),
+    GptOssFree(
+        title = "GPT-OSS 20B",
+        apiId = "openai/gpt-oss-20b:free",
+        provider = AgentProvider.OpenRouter,
+        maxContextTokens = 131_072,
+        pricing = ModelPricing.Free
     );
 
     companion object {
         /** Найти модель по её API-идентификатору (для подсчёта стоимости в статистике). */
         fun fromApiId(apiId: String?): AgentLlmModel? =
             apiId?.let { id -> entries.firstOrNull { it.apiId == id } }
+
+        /**
+         * Бесплатная модель OpenRouter для демо-заливки контекста: заливать окно на платной
+         * DeepSeek дорого, поэтому стресс-тест всегда идёт на free-провайдере.
+         */
+        fun freeOpenRouter(): AgentLlmModel =
+            entries.firstOrNull { it.provider == AgentProvider.OpenRouter && it.pricing.isFree }
+                ?: LlamaFree
     }
 }
 

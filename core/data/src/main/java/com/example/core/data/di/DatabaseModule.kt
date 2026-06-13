@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.example.core.data.ai.local.AdventAiDatabase
 import com.example.core.data.ai.local.ChatMessageDao
 import com.example.core.data.ai.local.ConversationDao
+import com.example.core.data.ai.local.FillerQuestionDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -38,4 +39,8 @@ object DatabaseModule {
     @Provides
     fun provideChatMessageDao(database: AdventAiDatabase): ChatMessageDao =
         database.chatMessageDao()
+
+    @Provides
+    fun provideFillerQuestionDao(database: AdventAiDatabase): FillerQuestionDao =
+        database.fillerQuestionDao()
 }

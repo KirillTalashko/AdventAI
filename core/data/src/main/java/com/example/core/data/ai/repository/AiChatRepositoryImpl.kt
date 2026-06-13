@@ -107,7 +107,11 @@ private fun HttpException.toAppError(): AppError {
         ?.take(400)
 
     return when (code()) {
-        400 -> AppError.InvalidRequest
+        400 -> if (details?.contains("context", ignoreCase = true) == true) {
+            AppError.ContextOverflow
+        } else {
+            AppError.InvalidRequest
+        }
         401 -> AppError.Unauthorized
         402 -> AppError.InsufficientBalance
         422 -> AppError.InvalidParameters

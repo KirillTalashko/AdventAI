@@ -5,9 +5,12 @@ import com.example.core.common.DispatcherProvider
 import com.example.core.data.ai.local.ChatMessageDao
 import com.example.core.data.ai.local.ConversationDao
 import com.example.core.data.ai.local.ConversationEntity
+import com.example.core.data.ai.local.FillerQuestionDao
+import com.example.core.data.ai.local.FillerQuestionEntity
 import com.example.core.data.ai.mapper.toDomain
 import com.example.core.data.ai.mapper.toEntity
 import com.example.core.domain.repository.ChatHistoryRepository
+import com.example.core.domain.repository.FillerQuestion
 import com.example.core.model.ai.AgentChatMessage
 import com.example.core.model.ai.Conversation
 import com.example.core.model.ai.ConversationTokenStat
@@ -19,6 +22,7 @@ import javax.inject.Inject
 class ChatHistoryRepositoryImpl @Inject constructor(
     private val conversationDao: ConversationDao,
     private val messageDao: ChatMessageDao,
+    private val fillerQuestionDao: FillerQuestionDao,
     private val dispatchers: DispatcherProvider = DefaultDispatcherProvider
 ) : ChatHistoryRepository {
     override fun observeConversations(agentId: String): Flow<List<Conversation>> =
@@ -43,6 +47,26 @@ class ChatHistoryRepositoryImpl @Inject constructor(
                 )
             )
         }
+
+    override suspend fun createEphemeralConversation(agentId: String, title: String): Long =
+        withContext(dispatchers.io) {
+            val now = System.currentTimeMillis()
+            conversationDao.insert(
+                ConversationEntity(
+                    agentId = agentId,
+                    title = title,
+                    createdAt = now,
+                    updatedAt = now,
+                    ephemeral = true
+                )
+            )
+        }
+
+    override suspend fun deleteEphemeralConversations(agentId: String) {
+        withContext(dispatchers.io) {
+            conversationDao.deleteEphemeral(agentId)
+        }
+    }
 
     override suspend fun updateConversationTitle(conversationId: Long, title: String) {
         withContext(dispatchers.io) {
@@ -82,4 +106,29 @@ class ChatHistoryRepositoryImpl @Inject constructor(
         conversationDao.observeTokenStats().map { rows ->
             rows.map { it.toDomain() }
         }
+
+    override suspend fun seedFillerQuestions(questions: List<String>) {
+        withContext(dispatchers.io) {
+            if (fillerQuestionDao.count() == 0 && questions.isNotEmpty()) {
+                fillerQuestionDao.insertAll(questions.map { FillerQuestionEntity(text = it) })
+            }
+        }
+    }
+
+    override suspend fun getUnusedFillerQuestions(): List<FillerQuestion> =
+        withContext(dispatchers.io) {
+            fillerQuestionDao.getUnused().map { FillerQuestion(id = it.id, text = it.text) }
+        }
+
+    override suspend fun markFillerUsed(id: Long) {
+        withContext(dispatchers.io) {
+            fillerQuestionDao.markUsed(id)
+        }
+    }
+
+    override suspend fun clearFillerQuestions() {
+        withContext(dispatchers.io) {
+            fillerQuestionDao.clear()
+        }
+    }
 }

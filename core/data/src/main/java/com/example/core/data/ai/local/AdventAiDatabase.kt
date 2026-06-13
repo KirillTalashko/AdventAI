@@ -6,12 +6,14 @@ import androidx.room.RoomDatabase
 @Database(
     entities = [
         ConversationEntity::class,
-        ChatMessageEntity::class
+        ChatMessageEntity::class,
+        FillerQuestionEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AdventAiDatabase : RoomDatabase() {
     abstract fun conversationDao(): ConversationDao
     abstract fun chatMessageDao(): ChatMessageDao
+    abstract fun fillerQuestionDao(): FillerQuestionDao
 }
