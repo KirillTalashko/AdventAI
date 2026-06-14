@@ -28,6 +28,14 @@ interface ConversationDao {
     @Query("DELETE FROM conversations WHERE id = :id")
     suspend fun delete(id: Long)
 
+    // --- Сжатие истории (Day 9) ---
+
+    @Query("SELECT summary, summarized_count FROM conversations WHERE id = :id")
+    suspend fun getSummaryRow(id: Long): ConversationSummaryRow?
+
+    @Query("UPDATE conversations SET summary = :summary, summarized_count = :count WHERE id = :id")
+    suspend fun updateSummary(id: Long, summary: String?, count: Int)
+
     /**
      * Сводка по токенам каждого диалога: суммируем токены сообщений с учтённым
      * расходом (ответы модели). LEFT JOIN сохраняет диалоги без статистики с нулями.

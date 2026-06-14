@@ -53,6 +53,7 @@ import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -114,6 +115,7 @@ import java.util.Locale
 fun ChatRoute(
     viewModel: ChatViewModel,
     onNavigateBack: () -> Unit,
+    onNavigateToCompressionAb: () -> Unit = {},
     statsViewModel: StatisticsViewModel = hiltViewModel()
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
@@ -136,6 +138,10 @@ fun ChatRoute(
         onTemperatureChanged = viewModel::onTemperatureChanged,
         onMaxTokensChanged = viewModel::onMaxTokensChanged,
         onTopPChanged = viewModel::onTopPChanged,
+        onCompressionToggled = viewModel::onCompressionToggled,
+        onKeepRecentChanged = viewModel::onKeepRecentChanged,
+        onSummarizeBatchChanged = viewModel::onSummarizeBatchChanged,
+        onCompareCompression = onNavigateToCompressionAb,
         onStartContextFill = viewModel::onStartContextFill,
         onStartContextOverflow = viewModel::onStartContextOverflow,
         onStopContextFill = viewModel::onStopContextFill,
@@ -169,6 +175,10 @@ fun ChatScreen(
     onTemperatureChanged: (Double?) -> Unit,
     onMaxTokensChanged: (Int?) -> Unit,
     onTopPChanged: (Double?) -> Unit,
+    onCompressionToggled: (Boolean) -> Unit,
+    onKeepRecentChanged: (Int) -> Unit,
+    onSummarizeBatchChanged: (Int) -> Unit,
+    onCompareCompression: () -> Unit,
     onStartContextFill: () -> Unit,
     onStartContextOverflow: () -> Unit,
     onStopContextFill: () -> Unit,
@@ -282,7 +292,10 @@ fun ChatScreen(
                                             state.contextFill.droppedCount
                                         } else {
                                             0
-                                        }
+                                        },
+                                        summarizedCount = state.summarizedCount,
+                                        summaryText = state.summaryText,
+                                        summaryTokens = state.summaryTokens
                                     )
                                     val showScrollDown by remember {
                                         derivedStateOf { listState.canScrollForward }
@@ -314,7 +327,9 @@ fun ChatScreen(
 
                             ContextMeter(
                                 used = state.contextTokens,
-                                limit = state.contextLimit
+                                limit = state.contextLimit,
+                                savingsPercent = state.compressionSavingsPercent,
+                                fullTokens = state.fullContextTokens
                             )
 
                             MessageComposer(
@@ -350,6 +365,13 @@ fun ChatScreen(
                     onTemperatureChanged = onTemperatureChanged,
                     onMaxTokensChanged = onMaxTokensChanged,
                     onTopPChanged = onTopPChanged,
+                    onCompressionToggled = onCompressionToggled,
+                    onKeepRecentChanged = onKeepRecentChanged,
+                    onSummarizeBatchChanged = onSummarizeBatchChanged,
+                    onCompareCompression = {
+                        showSettings = false
+                        onCompareCompression()
+                    },
                     onStartContextFill = {
                         showSettings = false
                         onStartContextFill()
@@ -477,7 +499,10 @@ private fun MessageList(
     isLoading: Boolean,
     errorMessage: String?,
     modifier: Modifier = Modifier,
-    outOfWindowCount: Int = 0
+    outOfWindowCount: Int = 0,
+    summarizedCount: Int = 0,
+    summaryText: String? = null,
+    summaryTokens: Int = 0
 ) {
     // Индекс первого сообщения, которое ещё в окне: перед ним рисуем границу «модель это не видит».
     val dividerIndex = remember(chatItems, outOfWindowCount) {
@@ -496,6 +521,15 @@ private fun MessageList(
         ),
         verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
     ) {
+        if (summarizedCount > 0) {
+            item(key = "compressed-memory") {
+                CompressedMemoryCard(
+                    count = summarizedCount,
+                    summary = summaryText,
+                    summaryTokens = summaryTokens
+                )
+            }
+        }
         itemsIndexed(chatItems) { index, item ->
             if (index == dividerIndex) {
                 WindowDivider()
@@ -552,6 +586,71 @@ private fun WindowDivider(modifier: Modifier = Modifier) {
                 color = MaterialTheme.colorScheme.onErrorContainer,
                 maxLines = 1
             )
+        }
+    }
+}
+
+@Composable
+private fun CompressedMemoryCard(
+    count: Int,
+    summary: String?,
+    summaryTokens: Int,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember(summary) { mutableStateOf(false) }
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(bottom = AppSpacing.sm),
+        shape = RoundedCornerShape(AppRadii.cardLarge),
+        color = MaterialTheme.colorScheme.secondaryContainer
+    ) {
+        Column(
+            modifier = Modifier.padding(AppSpacing.lg),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            Text(
+                text = stringResource(R.string.compression_memory_card_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                maxLines = 1
+            )
+            Text(
+                text = stringResource(
+                    R.string.compression_memory_card_subtitle,
+                    count,
+                    formatTokens(summaryTokens)
+                ),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+            )
+            if (!summary.isNullOrBlank()) {
+                if (expanded) {
+                    Text(
+                        text = summary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+                Text(
+                    text = stringResource(
+                        if (expanded) {
+                            R.string.compression_memory_collapse
+                        } else {
+                            R.string.compression_memory_expand
+                        }
+                    ),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(AppRadii.field))
+                        .clickable { expanded = !expanded }
+                        .padding(vertical = 2.dp),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1
+                )
+            }
         }
     }
 }
@@ -712,7 +811,9 @@ private fun MessageTokenInfo(
 private fun ContextMeter(
     used: Int,
     limit: Int,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    savingsPercent: Int = 0,
+    fullTokens: Int = 0
 ) {
     if (limit <= 0) return
     val fraction = (used.toFloat() / limit.toFloat()).coerceIn(0f, 1f)
@@ -724,10 +825,16 @@ private fun ContextMeter(
         else -> MaterialTheme.colorScheme.primary
     }
     val statusText = when {
+        savingsPercent > 0 -> stringResource(
+            R.string.context_meter_savings,
+            savingsPercent,
+            formatTokens(fullTokens)
+        )
         overflow -> stringResource(R.string.context_meter_overflow_block)
         warning -> stringResource(R.string.context_meter_warning)
         else -> null
     }
+    val statusColor = if (savingsPercent > 0) AdventTheme.status.success else barColor
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -754,7 +861,7 @@ private fun ContextMeter(
                     text = it,
                     modifier = Modifier.padding(start = AppSpacing.sm),
                     style = MaterialTheme.typography.labelSmall,
-                    color = barColor,
+                    color = statusColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1271,6 +1378,10 @@ private fun AgentSettingsSheet(
     onTemperatureChanged: (Double?) -> Unit,
     onMaxTokensChanged: (Int?) -> Unit,
     onTopPChanged: (Double?) -> Unit,
+    onCompressionToggled: (Boolean) -> Unit,
+    onKeepRecentChanged: (Int) -> Unit,
+    onSummarizeBatchChanged: (Int) -> Unit,
+    onCompareCompression: () -> Unit,
     onStartContextFill: () -> Unit,
     onStartContextOverflow: () -> Unit,
     onClose: () -> Unit,
@@ -1319,6 +1430,18 @@ private fun AgentSettingsSheet(
                 onValueChange = onSystemPromptChanged,
                 label = "Системный промпт",
                 minLines = 6
+            )
+        }
+
+        SettingsSection(title = stringResource(R.string.settings_section_compression)) {
+            CompressionSettings(
+                enabled = state.config.compressionEnabled,
+                keepRecent = state.config.keepRecentMessages,
+                summarizeBatch = state.config.summarizeBatch,
+                onToggled = onCompressionToggled,
+                onKeepRecentChanged = onKeepRecentChanged,
+                onSummarizeBatchChanged = onSummarizeBatchChanged,
+                onCompare = onCompareCompression
             )
         }
 
@@ -1599,6 +1722,139 @@ private fun OverflowDemoButton(
         }
         Text(
             text = stringResource(R.string.context_overflow_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+private val KeepRecentPresets = listOf(2, 4, 6, 8, 10)
+private val SummarizeBatchPresets = listOf(4, 6, 8, 10)
+
+@Composable
+private fun CompressionSettings(
+    enabled: Boolean,
+    keepRecent: Int,
+    summarizeBatch: Int,
+    onToggled: (Boolean) -> Unit,
+    onKeepRecentChanged: (Int) -> Unit,
+    onSummarizeBatchChanged: (Int) -> Unit,
+    onCompare: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.md)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.md),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.compression_toggle_label),
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Switch(checked = enabled, onCheckedChange = onToggled)
+        }
+        Text(
+            text = stringResource(R.string.compression_toggle_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (enabled) {
+            IntChips(
+                title = stringResource(R.string.compression_keep_recent_label),
+                options = KeepRecentPresets,
+                selected = keepRecent,
+                onSelect = onKeepRecentChanged
+            )
+            IntChips(
+                title = stringResource(R.string.compression_batch_label),
+                options = SummarizeBatchPresets,
+                selected = summarizeBatch,
+                onSelect = onSummarizeBatchChanged
+            )
+        }
+        CompareCompressionButton(onClick = onCompare)
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun IntChips(
+    title: String,
+    options: List<Int>,
+    selected: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+        ) {
+            options.forEach { value ->
+                SelectableChip(
+                    text = value.toString(),
+                    selected = value == selected,
+                    onClick = { onSelect(value) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompareCompressionButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.sm)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(AppRadii.bubble))
+                .clickable(onClick = onClick),
+            shape = RoundedCornerShape(AppRadii.bubble),
+            color = MaterialTheme.colorScheme.secondaryContainer
+        ) {
+            Row(
+                modifier = Modifier.padding(AppSpacing.lg),
+                horizontalArrangement = Arrangement.spacedBy(AppSpacing.md),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_stats_24),
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Text(
+                    text = stringResource(R.string.compression_compare_button),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+        }
+        Text(
+            text = stringResource(R.string.compression_compare_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -2128,6 +2384,10 @@ private fun ChatScreenPreview() {
             onTemperatureChanged = {},
             onMaxTokensChanged = {},
             onTopPChanged = {},
+            onCompressionToggled = {},
+            onKeepRecentChanged = {},
+            onSummarizeBatchChanged = {},
+            onCompareCompression = {},
             onStartContextFill = {},
             onStartContextOverflow = {},
             onStopContextFill = {},

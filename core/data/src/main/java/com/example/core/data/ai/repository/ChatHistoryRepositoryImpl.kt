@@ -10,6 +10,7 @@ import com.example.core.data.ai.local.FillerQuestionEntity
 import com.example.core.data.ai.mapper.toDomain
 import com.example.core.data.ai.mapper.toEntity
 import com.example.core.domain.repository.ChatHistoryRepository
+import com.example.core.domain.repository.ConversationSummaryState
 import com.example.core.domain.repository.FillerQuestion
 import com.example.core.model.ai.AgentChatMessage
 import com.example.core.model.ai.Conversation
@@ -99,6 +100,22 @@ class ChatHistoryRepositoryImpl @Inject constructor(
     override suspend fun appendMessage(conversationId: Long, message: AgentChatMessage) {
         withContext(dispatchers.io) {
             messageDao.insert(message.toEntity(conversationId = conversationId))
+        }
+    }
+
+    override suspend fun getSummaryState(conversationId: Long): ConversationSummaryState =
+        withContext(dispatchers.io) {
+            conversationDao.getSummaryRow(conversationId)?.let { row ->
+                ConversationSummaryState(
+                    summary = row.summary,
+                    summarizedCount = row.summarizedCount
+                )
+            } ?: ConversationSummaryState.Empty
+        }
+
+    override suspend fun updateSummary(conversationId: Long, summary: String?, summarizedCount: Int) {
+        withContext(dispatchers.io) {
+            conversationDao.updateSummary(conversationId, summary, summarizedCount)
         }
     }
 

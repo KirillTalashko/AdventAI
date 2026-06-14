@@ -11,11 +11,32 @@ data class AgentConfig(
      * окна на коротком диалоге (Day 8).
      */
     val demoContextLimitTokens: Int? = null,
+    /**
+     * Сжатие истории (Day 9). Когда включено, старая часть диалога сворачивается в summary
+     * отдельным запросом к LLM, а в контекст уходит `summary + последние N сообщений`.
+     */
+    val compressionEnabled: Boolean = false,
+    /** Сколько последних сообщений всегда отправляем «как есть» (не сворачиваем). */
+    val keepRecentMessages: Int = DEFAULT_KEEP_RECENT_MESSAGES,
+    /** Минимальный размер пачки старых сообщений, при котором запускается свёртка («каждые N»). */
+    val summarizeBatch: Int = DEFAULT_SUMMARIZE_BATCH,
     /** Параметры API. `null` — значение по умолчанию у провайдера. */
     val temperature: Double? = null,
     val maxTokens: Int? = null,
-    val topP: Double? = null
+    val topP: Double? = null,
+    /**
+     * Управление reasoning. `null` — режим по умолчанию у модели (deepseek-v4 рассуждает всегда),
+     * [ThinkingMode.Disabled] — отключить рассуждение. Нужно для служебных/демо-вызовов с малым
+     * `maxTokens`, где reasoning иначе съел бы весь бюджет и ответ не успел бы сформироваться.
+     */
+    val thinkingMode: ThinkingMode? = null
 )
+
+/** Дефолт «последних N сырых сообщений» для сжатия истории. */
+const val DEFAULT_KEEP_RECENT_MESSAGES = 6
+
+/** Дефолт размера пачки для свёртки старых сообщений. */
+const val DEFAULT_SUMMARIZE_BATCH = 10
 
 /** Эффективный лимит окна: демо-значение, но не больше реального лимита модели. */
 fun AgentConfig.effectiveContextLimit(): Int {

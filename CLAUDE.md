@@ -23,19 +23,20 @@ Kotlin · Jetpack Compose · Material 3 · Hilt · Retrofit/OkHttp · Gradle Kot
 
 - `app` — `MainActivity`, навигация (нижние вкладки: **Чат**, **Статистика**), экран статистики токенов и стоимости.
 - `feature:home` — главный экран, carousel агентов.
-- `feature:chat` — экран диалога (с индикатором контекстного окна и чипами токенов под ответами), настройки агента (включая демо-лимит окна и авто-обрезку истории), экраны-эксперименты (reasoning, temperature, model comparison, format).
-- `core:model` — модели данных (`AgentConfig`, `AgentLlmModel` с лимитом окна и тарифом, `ChatRequestOptions`, `TokenUsage`, `ConversationTokenStat`, …).
-- `core:domain` — `AiAgent`, use case, интерфейс репозитория.
+- `feature:chat` — экран диалога (с индикатором контекстного окна и чипами токенов под ответами), настройки агента (демо-лимит окна, авто-обрезка истории, сжатие истории в summary), карточка «Сжатая память», экраны-эксперименты (reasoning, temperature, model comparison, format, A/B сжатия).
+- `core:model` — модели данных (`AgentConfig` с полями сжатия, `AgentLlmModel` с лимитом окна и тарифом, `ChatRequestOptions`, `TokenUsage`, `ConversationTokenStat`, …).
+- `core:domain` — `AiAgent`, `HistoryCompressor`/`ConversationSummarizer` (сжатие истории), use case, интерфейс репозитория.
 - `core:data` — реализация репозитория, мапперы.
 - `core:network` — Retrofit API (`DeepSeekApi`, `OpenRouterApi`), DTO, `NetworkModule`.
 - `core:designsystem` — тема, цвета, общие UI-компоненты.
 - `core:common` — `AppResult`, `AppError`, диспетчеры.
 
-## Поток работы агента (Day 6 «Первый агент» ✅ · Day 7 «Контекст» ✅ · Day 8 «Токены» ✅)
+## Поток работы агента (Day 6 «Первый агент» ✅ · Day 7 «Контекст» ✅ · Day 8 «Токены» ✅ · Day 9 «Сжатие» ✅)
 
 ```
 ChatScreen → ChatViewModel.sendMessage()
-          → AiAgent.ask(config, conversation)   // вся история, system prompt, оценка токенов + проверка окна
+          → PrepareCompressedContextUseCase     // при вкл. сжатии: summary + последние N (свёртка при необходимости)
+          → AiAgent.ask(config, recent, memory) // history/recent, system prompt(+summary), оценка токенов + проверка окна
           → AiChatRepository (core:data)
           → DeepSeekApi / OpenRouterApi (Retrofit, chat/completions)
           → AgentAnswer(content, usage) → история и токены в Room → UI
@@ -44,12 +45,16 @@ ChatScreen → ChatViewModel.sendMessage()
 Статус по дням:
 - **Day 7** — история диалога персистится в Room и целиком уходит в LLM (агент «помнит» контекст).
 - **Day 8** — подсчёт токенов: факт `usage` из API больше не теряется (сохраняется по сообщению), плюс локальная оценка до запроса (`TokenEstimator`), лимит контекстного окна и тариф у модели, демо-переполнение окна (ошибка `ContextOverflow`) и sliding-window авто-обрезка, вкладка «Статистика» (рост токенов и стоимости).
+- **Day 9** — управление контекстом через сжатие истории (rolling summary): последние N сообщений «как есть», старшее сворачивается в `summary` пачками (отдельный запрос к DeepSeek Flash) и подставляется в запрос вместо полной истории; summary хранится отдельно (Room v5); тумблер сжатия + карточка «Сжатая память» + индикатор экономии в чате; A/B-экран сравнения «сжатие vs без».
 
 Ключевые файлы:
 - `core/domain/src/main/java/com/example/core/domain/agent/AiAgent.kt`
 - `core/domain/src/main/java/com/example/core/domain/agent/TokenEstimator.kt`
+- `core/domain/src/main/java/com/example/core/domain/agent/HistoryCompressor.kt` · `ConversationSummarizer.kt`
+- `core/domain/src/main/java/com/example/core/domain/usecase/PrepareCompressedContextUseCase.kt`
 - `core/model/src/main/java/com/example/core/model/ai/AgentModels.kt`
 - `feature/chat/src/main/java/com/example/feature/chat/presentation/viewmodel/ChatViewModel.kt`
+- `feature/chat/src/main/java/com/example/feature/chat/presentation/compression/` — A/B-экран сжатия
 - `app/src/main/java/com/example/adventai/ui/statistics/StatisticsScreen.kt`
 
 ## Правила
