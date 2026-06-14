@@ -9,7 +9,7 @@ import androidx.room.RoomDatabase
         ChatMessageEntity::class,
         FillerQuestionEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AdventAiDatabase : RoomDatabase() {

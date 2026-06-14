@@ -152,6 +152,85 @@
     <string name="context_overflow_banner_running">Отправляю огромный промпт…</string>
     <string name="context_overflow_banner_done">Переполнение окна</string>
     <string name="context_overflow_prompt">Промпт ~%1$s ток · окно модели ~%2$s ток.</string>
+
+    <!-- Day 9: сжатие истории (summary) -->
+    <string name="settings_section_compression">Сжатие истории</string>
+    <string name="compression_toggle_label">Сжимать историю в summary</string>
+    <string name="compression_toggle_hint">Старые сообщения сворачиваются в краткое содержание (отдельным запросом к DeepSeek Flash) и подставляются в запрос вместо полной истории. Экономит токены, при этом агент помнит факты из ранней части диалога.</string>
+    <string name="compression_keep_recent_label">Сырых сообщений в хвосте (N)</string>
+    <string name="compression_batch_label">Сворачивать пачками по</string>
+    <string name="compression_compare_button">Сравнить: сжатие vs без</string>
+    <string name="compression_compare_hint">A/B-эксперимент: один и тот же диалог прогоняется дважды — без сжатия и со сжатием — а токены и память (вспомнил ли имя) показываются рядом.</string>
+    <string name="compression_memory_card_title">Сжатая память</string>
+    <string name="compression_memory_card_subtitle">свёрнуто %1$d сообщ. → summary (~%2$s ток.)</string>
+    <string name="compression_memory_expand">Показать summary</string>
+    <string name="compression_memory_collapse">Скрыть summary</string>
+    <string name="compression_divider_label">↑ свёрнуто в summary</string>
+    <string name="context_meter_savings">сжато: −%1$d%% (полная ~%2$s ток.)</string>
+
+    <!-- Day 9: A/B-экран сравнения сжатия -->
+    <string name="compression_ab_title">Сжатие истории · A/B</string>
+    <string name="compression_ab_intro">Один и тот же диалог прогоняется дважды — без сжатия и со сжатием. Сравниваем расход токенов и помнит ли агент имя в конце.</string>
+    <string name="compression_ab_idle_hint">Прогон идёт на DeepSeek Flash: называем имя, затем %1$d «тяжёлых» вопросов, затем проверяем память. Дважды — без сжатия и со сжатием.</string>
+    <string name="compression_ab_run">Запустить сравнение</string>
+    <string name="compression_ab_rerun">Запустить ещё раз</string>
+    <string name="compression_ab_stop">Остановить</string>
+    <string name="compression_ab_running">Идёт прогон: %1$s</string>
+    <string name="compression_ab_variant_baseline">Без сжатия</string>
+    <string name="compression_ab_variant_compressed">Со сжатием</string>
+    <string name="compression_ab_turns">ходов: %1$d из %2$d</string>
+    <string name="compression_ab_name_yes">да ✓</string>
+    <string name="compression_ab_name_no">нет ✗</string>
+    <string name="compression_ab_name_pending">…</string>
+    <string name="compression_ab_savings_title">Итог</string>
+    <string name="compression_ab_quality_same">Качество сохранено: имя на месте в обоих прогонах ✓</string>
+    <string name="compression_ab_quality_better">Без сжатия имя потеряно, со сжатием — на месте ✓</string>
+    <string name="compression_ab_quality_worse">Со сжатием имя потеряно — увеличьте N или размер пачки.</string>
+
+    <!-- Day 9: A/B — структурированный итог «до → после» -->
+    <string name="compression_ab_concl_quality">1. Качество ответов — помнит ли имя</string>
+    <string name="compression_ab_concl_tokens">2. Расход токенов за всю беседу</string>
+    <string name="compression_ab_concl_context">3. Размер контекста в модель (последний ход)</string>
+    <string name="compression_ab_concl_money">4. Деньги</string>
+    <string name="compression_ab_concl_quality_baseline">Без сжатия: %1$s</string>
+    <string name="compression_ab_concl_quality_compressed">Со сжатием: %1$s</string>
+    <string name="compression_ab_concl_before">До (без сжатия): %1$s</string>
+    <string name="compression_ab_concl_after">После (со сжатием): %1$s</string>
+    <string name="compression_ab_concl_saved">экономия −%1$d%%</string>
+    <string name="compression_ab_concl_grew">больше на +%1$d%%</string>
+    <string name="compression_ab_concl_tokens_unit">%1$s ток.</string>
+    <string name="compression_ab_concl_money_cache">С кэшем DeepSeek: %1$s → %2$s</string>
+    <string name="compression_ab_concl_money_nocache">Без кэша: %1$s → %2$s (−%3$d%%)</string>
+
+    <!-- Day 9: A/B — таблица, график, кэш, таймлайн -->
+    <string name="compression_ab_table_title">Сравнение прогонов</string>
+    <string name="compression_ab_col_baseline">Без сжатия</string>
+    <string name="compression_ab_col_compressed">Со сжатием</string>
+    <string name="compression_ab_row_prompt">Вход (prompt)</string>
+    <string name="compression_ab_row_completion">Выход (ответы)</string>
+    <string name="compression_ab_row_total">Всего токенов</string>
+    <string name="compression_ab_row_overhead">из них на свёртки</string>
+    <string name="compression_ab_row_peak">Пик контекста</string>
+    <string name="compression_ab_row_cache">Из кэша промпта</string>
+    <string name="compression_ab_row_cost_cache">Стоимость (с кэшем)</string>
+    <string name="compression_ab_row_cost_nocache">Стоимость (без кэша)</string>
+    <string name="compression_ab_row_name">Вспомнил имя</string>
+    <string name="compression_ab_name_answer_baseline">Без сжатия → «%1$s»</string>
+    <string name="compression_ab_name_answer_compressed">Со сжатием → «%1$s»</string>
+    <string name="compression_ab_chart_title">Размер контекста по ходам</string>
+    <string name="compression_ab_chart_sub">сколько токенов уходит в модель на каждом ходе</string>
+    <string name="compression_ab_cache_note">На DeepSeek повтор одной истории почти весь идёт из кэша (вход дешевле в ~4×), поэтому со сжатием деньги могут быть выше. Сжатие выигрывает по размеру контекста, по сырым токенам и по цене без кэша — и позволяет влезть в окно, когда полная история уже не помещается.</string>
+    <string name="compression_ab_timeline_title">Как происходила свёртка</string>
+    <string name="compression_ab_timeline_sub">summary хранится отдельно от сообщений и подставляется в запрос вместо них</string>
+    <string name="compression_ab_timeline_event">После хода %1$d · свёрнуто %2$d сообщ. (всего %3$d)</string>
+    <string name="compression_ab_timeline_before">История: ~%1$s ток.</string>
+    <string name="compression_ab_timeline_after">Summary: ~%1$s ток.</string>
+    <string name="compression_ab_timeline_ratio">−%1$d%% к размеру контекста</string>
+    <string name="compression_ab_timeline_stored">хранится отдельно</string>
+    <string name="compression_ab_timeline_folded">Свёрнуто: %1$s</string>
+    <string name="compression_ab_timeline_summary_show">Показать summary</string>
+    <string name="compression_ab_timeline_summary_hide">Скрыть summary</string>
+
     <string name="settings_section_api">Параметры API</string>
     <string name="settings_temperature_label">Temperature</string>
     <string name="settings_top_p_label">Top-p</string>

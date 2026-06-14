@@ -5,6 +5,7 @@ import androidx.navigation.NavType
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.navArgument
 import androidx.navigation.compose.composable
+import com.example.feature.chat.presentation.compression.screen.CompressionAbRoute
 import com.example.feature.chat.presentation.format.screen.FormatRoute
 import com.example.feature.chat.presentation.modelcomparison.screen.ModelComparisonRoute
 import com.example.feature.chat.presentation.reasoning.screen.ReasoningRoute
@@ -36,8 +37,13 @@ object ModelComparisonDestination {
     const val ROUTE = "model_comparison"
 }
 
+object CompressionAbDestination {
+    const val ROUTE = "compression_ab"
+}
+
 fun NavGraphBuilder.chatScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToCompressionAb: () -> Unit = {}
 ) {
     composable(
         route = ChatDestination.ROUTE,
@@ -48,6 +54,18 @@ fun NavGraphBuilder.chatScreen(
         )
     ) {
         ChatRoute(
+            viewModel = hiltViewModel(),
+            onNavigateBack = onNavigateBack,
+            onNavigateToCompressionAb = onNavigateToCompressionAb
+        )
+    }
+}
+
+fun NavGraphBuilder.compressionAbScreen(
+    onNavigateBack: () -> Unit
+) {
+    composable(route = CompressionAbDestination.ROUTE) {
+        CompressionAbRoute(
             viewModel = hiltViewModel(),
             onNavigateBack = onNavigateBack
         )

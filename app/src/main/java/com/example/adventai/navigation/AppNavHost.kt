@@ -9,7 +9,9 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import com.example.feature.chat.presentation.navigation.ChatDestination
+import com.example.feature.chat.presentation.navigation.CompressionAbDestination
 import com.example.feature.chat.presentation.navigation.chatScreen
+import com.example.feature.chat.presentation.navigation.compressionAbScreen
 import com.example.feature.home.presentation.navigation.HomeDestination
 import com.example.feature.home.presentation.navigation.homeScreen
 
@@ -32,6 +34,12 @@ fun AppNavHost() {
                 }
             )
             chatScreen(
+                onNavigateBack = { navController.navigateUp() },
+                onNavigateToCompressionAb = {
+                    navController.navigate(CompressionAbDestination.ROUTE)
+                }
+            )
+            compressionAbScreen(
                 onNavigateBack = { navController.navigateUp() }
             )
         }

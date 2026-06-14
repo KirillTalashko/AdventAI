@@ -25,5 +25,14 @@ data class ConversationEntity(
      * удаляется в конце сессии.
      */
     @ColumnInfo(name = "ephemeral")
-    val ephemeral: Boolean = false
+    val ephemeral: Boolean = false,
+    /**
+     * Сжатие истории (Day 9): краткое содержание старой части диалога. Хранится отдельно от самих
+     * сообщений (`chat_messages`); подставляется в запрос вместо свёрнутых сообщений.
+     */
+    @ColumnInfo(name = "summary")
+    val summary: String? = null,
+    /** Сколько самых старых сообщений диалога уже представлено [summary]. */
+    @ColumnInfo(name = "summarized_count")
+    val summarizedCount: Int = 0
 )

@@ -30,7 +30,8 @@ class AiAgent @Inject constructor(
      */
     suspend fun ask(
         config: AgentConfig,
-        conversation: List<AgentChatMessage>
+        conversation: List<AgentChatMessage>,
+        memory: String? = null
     ): AppResult<AgentAnswer> {
         val lastMessage = conversation.lastOrNull()
         if (lastMessage == null ||
@@ -40,7 +41,7 @@ class AiAgent @Inject constructor(
             return AppResult.Error(AppError.EmptyPrompt)
         }
 
-        val systemPrompt = systemPromptOf(config)
+        val systemPrompt = systemPromptOf(config, memory)
 
         config.demoContextLimitTokens?.let { demoLimit ->
             val estimate = TokenEstimator.estimateConversation(systemPrompt, conversation.map { it.text })
@@ -92,6 +93,21 @@ class AiAgent @Inject constructor(
         return TokenEstimator.estimateConversation(systemPromptOf(config), texts)
     }
 
+    /**
+     * Оценка токенов **сжатого** контекста (Day 9): system prompt + summary + только сырой хвост
+     * (без свёрнутых старых сообщений). Нужна, чтобы показать экономию «сжато vs полная история».
+     */
+    fun estimateCompressedContextTokens(
+        config: AgentConfig,
+        recent: List<AgentChatMessage>,
+        memory: String?,
+        draft: String = ""
+    ): Int {
+        val texts = recent.map { it.text } +
+            if (draft.isNotBlank()) listOf(draft) else emptyList()
+        return TokenEstimator.estimateConversation(systemPromptOf(config, memory), texts)
+    }
+
     private fun AgentChatMessage.toChatMessage(): ChatMessage =
         ChatMessage(
             role = when (author) {
@@ -107,11 +123,16 @@ class AiAgent @Inject constructor(
             systemPrompt = systemPrompt,
             temperature = temperature,
             topP = topP,
-            maxTokens = maxTokens
+            maxTokens = maxTokens,
+            thinkingMode = thinkingMode
         )
 
-    /** System prompt запроса: роль агента + тема диалога + общая инструкция. */
-    fun systemPromptOf(config: AgentConfig): String =
+    /**
+     * System prompt запроса: роль агента + тема диалога + общая инструкция.
+     * Если задан [memory] (сжатая память Day 9), он добавляется отдельным блоком — модель
+     * учитывает факты из summary, хотя самих старых сообщений в запросе уже нет.
+     */
+    fun systemPromptOf(config: AgentConfig, memory: String? = null): String =
         buildString {
             append(config.systemPrompt.trim())
             if (config.dialogTheme.isNotBlank()) {
@@ -121,5 +142,10 @@ class AiAgent @Inject constructor(
             append("\n\nТы отвечаешь как агент \"")
             append(config.name.trim())
             append("\". Держи ответы практичными, точными и полезными для пользователя.")
+            if (!memory.isNullOrBlank()) {
+                append("\n\nСжатая память предыдущей части диалога (опирайся на эти факты, ")
+                append("самих ранних сообщений в запросе уже нет):\n")
+                append(memory.trim())
+            }
         }
 }

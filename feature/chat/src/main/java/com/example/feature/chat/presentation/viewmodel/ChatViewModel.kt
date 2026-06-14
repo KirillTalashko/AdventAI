@@ -8,9 +8,12 @@ import com.example.core.common.AppResult
 import com.example.core.common.fold
 import com.example.core.domain.agent.AiAgent
 import com.example.core.domain.agent.ContextWindowTrimmer
+import com.example.core.domain.agent.HistoryCompressor
 import com.example.core.domain.agent.TokenEstimator
 import com.example.core.domain.di.ApplicationScope
 import com.example.core.domain.repository.ChatHistoryRepository
+import com.example.core.domain.repository.ConversationSummaryState
+import com.example.core.domain.usecase.PrepareCompressedContextUseCase
 import com.example.core.model.ai.AgentAnswer
 import com.example.core.model.ai.AgentChatMessage
 import com.example.core.model.ai.AgentConfig
@@ -74,6 +77,7 @@ class ChatViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val agent: AiAgent,
     private val chatHistoryRepository: ChatHistoryRepository,
+    private val prepareCompressedContext: PrepareCompressedContextUseCase,
     private val errorMessageMapper: ChatErrorMessageMapper,
     @ApplicationScope private val appScope: CoroutineScope
 ) : ViewModel() {
@@ -93,6 +97,9 @@ class ChatViewModel @Inject constructor(
 
     /** Первый запрос заливки идёт без паузы, остальные — с интервалом. */
     private var fillFirstRequest: Boolean = true
+
+    /** Состояние сжатия активного диалога (summary + сколько свёрнуто) — кэш для индикатора окна. */
+    private var summaryState: ConversationSummaryState = ConversationSummaryState.Empty
 
     private val _uiState = MutableStateFlow(
         AgentChatUiState(config = defaultConfig(agentId)).withContextEstimate()
@@ -119,6 +126,7 @@ class ChatViewModel @Inject constructor(
         // Сообщения активного диалога; при переключении поток пересоздаётся.
         viewModelScope.launch {
             activeConversationId.filterNotNull().collectLatest { conversationId ->
+                summaryState = chatHistoryRepository.getSummaryState(conversationId)
                 _uiState.update { state -> state.copy(activeConversationId = conversationId) }
                 chatHistoryRepository.observeMessages(conversationId).collect { messages ->
                     _uiState.update { state -> state.copy(messages = messages).withContextEstimate() }
@@ -166,7 +174,22 @@ class ChatViewModel @Inject constructor(
             }
 
             val conversation = chatHistoryRepository.getMessages(conversationId)
-            agent.ask(config = config, conversation = conversation).fold(
+            // Day 9: при включённом сжатии старая часть истории сворачивается в summary,
+            // и в модель уходит `summary + последние N сообщений` вместо полной истории.
+            val prepared = prepareCompressedContext(
+                conversationId = conversationId,
+                conversation = conversation,
+                config = config
+            )
+            summaryState = ConversationSummaryState(
+                summary = prepared.memory,
+                summarizedCount = prepared.summarizedCount
+            )
+            agent.ask(
+                config = config,
+                conversation = prepared.recent,
+                memory = prepared.memory
+            ).fold(
                 onSuccess = { answer ->
                     chatHistoryRepository.appendMessage(
                         conversationId = conversationId,
@@ -239,6 +262,20 @@ class ChatViewModel @Inject constructor(
 
     fun onTopPChanged(value: Double?) {
         updateConfig { copy(topP = value) }
+    }
+
+    // --- Сжатие истории (Day 9) ---
+
+    fun onCompressionToggled(enabled: Boolean) {
+        updateConfig { copy(compressionEnabled = enabled) }
+    }
+
+    fun onKeepRecentChanged(value: Int) {
+        updateConfig { copy(keepRecentMessages = value) }
+    }
+
+    fun onSummarizeBatchChanged(value: Int) {
+        updateConfig { copy(summarizeBatch = value) }
     }
 
     // -----------------------------------------------------------------------
@@ -553,11 +590,37 @@ class ChatViewModel @Inject constructor(
     }
 
     /** Пересчитывает оценку токенов контекста и лимит окна по текущему состоянию. */
-    private fun AgentChatUiState.withContextEstimate(): AgentChatUiState =
-        copy(
-            contextTokens = agent.estimateContextTokens(config, messages, message),
-            contextLimit = config.effectiveContextLimit()
+    private fun AgentChatUiState.withContextEstimate(): AgentChatUiState {
+        val fullTokens = agent.estimateContextTokens(config, messages, message)
+        val limit = config.effectiveContextLimit()
+        if (!config.compressionEnabled) {
+            return copy(
+                contextTokens = fullTokens,
+                fullContextTokens = fullTokens,
+                contextLimit = limit,
+                summarizedCount = 0,
+                summaryText = null,
+                summaryTokens = 0
+            )
+        }
+        // Сжатие включено: считаем, сколько реально уйдёт в модель (summary + сырой хвост).
+        val plan = HistoryCompressor.plan(
+            conversation = messages,
+            alreadySummarized = summaryState.summarizedCount,
+            keepRecent = config.keepRecentMessages,
+            batch = config.summarizeBatch
         )
+        val memory = summaryState.summary?.takeIf { it.isNotBlank() }
+        val compressedTokens = agent.estimateCompressedContextTokens(config, plan.recent, memory, message)
+        return copy(
+            contextTokens = compressedTokens,
+            fullContextTokens = fullTokens,
+            contextLimit = limit,
+            summarizedCount = summaryState.summarizedCount,
+            summaryText = memory,
+            summaryTokens = memory?.let { TokenEstimator.estimateText(it) } ?: 0
+        )
+    }
 
     private suspend fun createConversationWithGreeting(): Long {
         val id = chatHistoryRepository.createConversation(agentId, DEFAULT_CONVERSATION_TITLE)
@@ -612,10 +675,29 @@ data class AgentChatUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val availableModels: List<AgentLlmModel> = AgentLlmModel.entries,
-    /** Локальная оценка токенов контекста (system prompt + история + черновик). */
+    /**
+     * Локальная оценка токенов контекста, реально уходящего в модель: при включённом сжатии —
+     * `summary + хвост`, иначе — вся история (+ черновик).
+     */
     val contextTokens: Int = 0,
+    /** Оценка полной истории без сжатия — для сравнения «сжато vs полная история». */
+    val fullContextTokens: Int = 0,
     /** Эффективный лимит контекстного окна (демо-лимит или лимит модели). */
     val contextLimit: Int = 0,
+    /** Сколько старых сообщений свёрнуто в summary (0 — сжатие не сработало/выключено). */
+    val summarizedCount: Int = 0,
+    /** Текст текущего summary (для карточки «сжатая память»); null — сжатия нет. */
+    val summaryText: String? = null,
+    /** Оценка размера summary в токенах (для подписи карточки). */
+    val summaryTokens: Int = 0,
     /** Состояние демо-заливки контекста (фоновый авто-диалог). */
     val contextFill: ContextFillUiState = ContextFillUiState.Idle
-)
+) {
+    /** Экономия токенов от сжатия в процентах (0, если сжатия нет или истории мало). */
+    val compressionSavingsPercent: Int
+        get() = if (summarizedCount > 0 && fullContextTokens > contextTokens && fullContextTokens > 0) {
+            ((fullContextTokens - contextTokens) * 100) / fullContextTokens
+        } else {
+            0
+        }
+}

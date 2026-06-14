@@ -45,6 +45,14 @@ interface ChatHistoryRepository {
     /** Добавить сообщение в диалог. */
     suspend fun appendMessage(conversationId: Long, message: AgentChatMessage)
 
+    // --- Сжатие истории (Day 9): summary хранится отдельно от самих сообщений ---
+
+    /** Состояние свёртки диалога: текущий summary и сколько старых сообщений он покрывает. */
+    suspend fun getSummaryState(conversationId: Long): ConversationSummaryState
+
+    /** Сохранить обновлённый summary и число свёрнутых сообщений. */
+    suspend fun updateSummary(conversationId: Long, summary: String?, summarizedCount: Int)
+
     /** Сводка по токенам всех диалогов (для экрана «Статистика»), свежие сверху. */
     fun observeTokenStats(): Flow<List<ConversationTokenStat>>
 
@@ -68,3 +76,13 @@ data class FillerQuestion(
     val id: Long,
     val text: String
 )
+
+/** Состояние сжатия истории диалога: краткое содержание и сколько сообщений им покрыто. */
+data class ConversationSummaryState(
+    val summary: String?,
+    val summarizedCount: Int
+) {
+    companion object {
+        val Empty = ConversationSummaryState(summary = null, summarizedCount = 0)
+    }
+}
